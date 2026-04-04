@@ -1,0 +1,140 @@
+#usda 1.0
+(
+    doc = """Generic Neuron Asset — Reusable prototype for GPi, GPe, STN, Thalamus
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Asset Reuse via References — One Geometry, Many Placements
+    ═══════════════════════════════════════════════════════════
+
+    This single asset is referenced multiple times in neurons.usda.
+    Each reference gets independent overrides. Asset reuse via references is a
+    core USD pipeline pattern — one geometry file, many placements with metadata.
+
+    How it works in neurons.usda:
+        def Xform "GPi_Neuron" (
+            prepend references = @../assets/generic_neuron.usda@
+        )
+        {
+            # Override: these opinions are STRONGER than the referenced defaults
+            float neural:firingRate = 70.0     # GPi fires at 70 Hz
+            token neural:neurotransmitter = "GABA"
+        }
+
+        def Xform "STN_Neuron" (
+            prepend references = @../assets/generic_neuron.usda@
+        )
+        {
+            # SAME geometry, different overrides
+            float neural:firingRate = 25.0     # STN fires at 25 Hz
+            token neural:neurotransmitter = "Glutamate"
+        }
+
+    LIVRPS tells us: L (local overrides in the referencing prim) beats
+    R (referenced defaults). So GPi_Neuron's firingRate=70 overrides
+    this file's implicit firingRate=0 from NeuralStateAPI.
+
+    In production, this pattern extends to:
+      - Crowd simulation: one character asset, thousands of placed instances
+      - Prop libraries: one prop file, hundreds of placements with variant overrides
+      - Environment assets: one rock/tree, many scattered instances with overrides
+    """
+    defaultPrim = "Neuron"
+    upAxis = "Y"
+)
+
+def Xform "Neuron" (
+    doc = "Generic neuron — used for GPi, GPe, STN, and Thalamus placements"
+)
+{
+    # ─── SOMA ────────────────────────────────────────────────────────────────
+    # Slightly smaller than MSN soma (radius 0.8 vs 1.0).
+    # Purple hue — neutral color, overridden by material binding per-placement.
+    def Sphere "Soma" {
+        double radius = 0.8
+        color3f[] primvars:displayColor = [(0.75, 0.60, 0.90)]
+    }
+
+    # ─── DENDRITES ───────────────────────────────────────────────────────────
+    # 4 primary dendrites radiating in ±X and ±Y directions (cardinal axes).
+    # Simpler than MSN: 4 dendrites, 4 vertices each, no secondary branching.
+    # These represent the simpler dendritic arbors of basal ganglia interneurons
+    # and thalamic relay neurons.
+    #
+    # curveVertexCounts=[4]: each curve has 4 points = 3 linear segments
+    # Widths taper from 0.10 at base to 0.04 at tip
+
+    def Scope "Dendrites" {
+
+        # Primary_00: +X direction (right)
+        def BasisCurves "Primary_00" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.82, 0.0, 0.0), (1.60, 0.10, 0.08), (2.40, 0.05, -0.06), (3.10, 0.08, 0.10)]
+            float[] widths = [0.10, 0.08, 0.06, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.78, 0.65, 0.92)]
+        }
+
+        # Primary_01: -X direction (left)
+        def BasisCurves "Primary_01" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(-0.82, 0.0, 0.0), (-1.60, 0.10, -0.08), (-2.40, 0.05, 0.06), (-3.10, 0.08, -0.10)]
+            float[] widths = [0.10, 0.08, 0.06, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.78, 0.65, 0.92)]
+        }
+
+        # Primary_02: +Y direction (up)
+        def BasisCurves "Primary_02" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.0, 0.82, 0.0), (0.10, 1.60, 0.08), (0.05, 2.40, -0.06), (0.08, 3.10, 0.10)]
+            float[] widths = [0.10, 0.08, 0.06, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.78, 0.65, 0.92)]
+        }
+
+        # Primary_03: -Y direction (down)
+        def BasisCurves "Primary_03" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.0, -0.82, 0.0), (0.10, -1.60, -0.08), (0.05, -2.40, 0.06), (0.08, -3.10, -0.10)]
+            float[] widths = [0.10, 0.08, 0.06, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.78, 0.65, 0.92)]
+        }
+    }
+
+    # ─── AXON ────────────────────────────────────────────────────────────────
+    # Simple descending axon. For generic neurons the projection target
+    # depends on which nucleus they represent (set via neuron placement overrides).
+    # GPi → Thalamus (GABA, inhibitory)
+    # GPe → STN (GABA, inhibitory)
+    # STN → GPi/GPe (Glutamate, excitatory)
+    # Thalamus → Cortex (Glutamate, excitatory)
+
+    def Scope "Axon" {
+        def BasisCurves "MainAxon" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.0, -0.82, 0.0), (0.05, -2.50, 0.08), (0.02, -4.20, 0.15), (0.0, -6.00, 0.20)]
+            float[] widths = [0.08, 0.07, 0.06, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.65, 0.55, 0.82)]
+        }
+
+        # Terminal bouton — synaptic contact point
+        def Sphere "Bouton" {
+            double radius = 0.12
+            double3 xformOp:translate = (0.0, -6.20, 0.20)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            color3f[] primvars:displayColor = [(0.1, 0.85, 0.40)]
+        }
+    }
+}

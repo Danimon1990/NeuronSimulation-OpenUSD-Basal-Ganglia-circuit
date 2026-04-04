@@ -1,0 +1,208 @@
+#usda 1.0
+(
+    doc = """Pyramidal Neuron Asset — Layer V Cortical Pyramidal Neuron
+
+    ═══════════════════════════════════════════════════════════
+    ANATOMY: Corticostriatal Pyramidal Neuron
+    ═══════════════════════════════════════════════════════════
+
+    Layer V pyramidal neurons of the primary motor cortex (Brodmann Area 4) are
+    the primary corticostriatal projection neurons. They send glutamatergic axons
+    through the internal capsule to innervate BOTH D1 and D2 MSNs in the striatum.
+    This excitatory input is the TRIGGER of the entire basal ganglia circuit:
+
+      Cortex (Glu) → Striatum D1 MSN: excites direct pathway (Go)
+      Cortex (Glu) → Striatum D2 MSN: excites indirect pathway (NoGo)
+      Cortex (Glu) → STN: hyperdirect pathway (rapid brake)
+
+    The pyramidal neuron is named for its pyramid-shaped soma. Its most distinctive
+    feature is the APICAL DENDRITE — a long, thick process ascending toward the
+    cortical surface (Y+ in our scene). Basal dendrites radiate from the lower
+    hemisphere of the soma, providing local cortical connectivity.
+
+    ═══════════════════════════════════════════════════════════
+    USD GEOMETRY NOTES
+    ═══════════════════════════════════════════════════════════
+
+    The soma uses xformOp:scale = (1.0, 1.18, 1.0) — taller than wide,
+    reflecting the elongated pyramidal soma shape.
+
+    The apical dendrite is a single long BasisCurves going strongly Y+,
+    representing the characteristic apical trunk that pyramidal neurons extend
+    toward layer I of the cortex. It is notably thicker (widths 0.18→0.06)
+    than basal dendrites, reflecting the large caliber of real apical dendrites.
+
+    Basal dendrites radiate from the lower soma (Y~-0.95) in 4 diagonal directions,
+    representing the typical 'skirt' of basal dendrites seen in layer V pyramidals.
+
+    The axon descends Y- sharply — in the brain, layer V axons project through
+    the internal capsule to reach subcortical targets (striatum, brainstem, spinal cord).
+    Axon length = 12 units, reflecting the long-range projection character of these neurons.
+    """
+    defaultPrim = "PyramidalNeuron"
+    upAxis = "Y"
+)
+
+def Xform "PyramidalNeuron" (
+    doc = "Layer V cortical pyramidal neuron — corticostriatal projection neuron"
+)
+{
+    # ─── SOMA ────────────────────────────────────────────────────────────────
+    # Elongated soma: taller than wide in Y (scale Y = 1.18)
+    # Warm rose/pink color — cortical neurons use warm hue to contrast
+    # with the cooler-colored striatal and basal ganglia neurons
+    def Sphere "Soma" {
+        double radius = 1.2
+        double3 xformOp:scale = (1.0, 1.18, 1.0)
+        uniform token[] xformOpOrder = ["xformOp:scale"]
+        color3f[] primvars:displayColor = [(0.88, 0.68, 0.72)]
+    }
+
+    # ─── APICAL DENDRITE ─────────────────────────────────────────────────────
+    # The hallmark feature of pyramidal neurons.
+    # Ascends strongly Y+, slight XZ wobble for realism.
+    # 5 points: thick base (0.18) tapering to fine tip (0.06)
+    # In cortex, the apical trunk can reach 1mm in length and
+    # branches into an 'apical tuft' in layer I. Here we represent
+    # the trunk with a single tuft branch at the end.
+
+    def Scope "ApicalDendrite" {
+        def BasisCurves "ApicalTrunk" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [5]
+            point3f[] points = [(0.0, 1.42, 0.0), (0.2, 2.8, 0.1), (0.1, 4.5, 0.2), (0.3, 6.0, 0.1), (0.1, 7.5, 0.3)]
+            float[] widths = [0.18, 0.15, 0.12, 0.09, 0.06]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+
+        # Apical tuft: small branches at the tip of the apical trunk
+        def BasisCurves "TuftLeft" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [3]
+            point3f[] points = [(0.1, 7.5, 0.3), (-0.5, 8.2, 0.5), (-0.9, 8.8, 0.4)]
+            float[] widths = [0.06, 0.04, 0.02]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+        def BasisCurves "TuftRight" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [3]
+            point3f[] points = [(0.1, 7.5, 0.3), (0.7, 8.2, 0.1), (1.1, 8.8, 0.2)]
+            float[] widths = [0.06, 0.04, 0.02]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+    }
+
+    # ─── BASAL DENDRITES ─────────────────────────────────────────────────────
+    # 4 basal dendrites radiating from the lower hemisphere of the soma
+    # at Y~-0.95 (below soma center). They go outward-and-downward,
+    # in diagonal directions to cover the local dendritic field.
+    # curveVertexCounts=[4]: 4 points, 3 segments each
+    # widths 0.14→0.04: thicker at base, finer at tips
+
+    def Scope "BasalDendrites" {
+
+        # Basal_00: +X -Y direction (right-down)
+        # From near soma base, extends toward lower-right
+        def BasisCurves "Basal_00" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.85, -0.95, 0.0), (1.60, -1.80, 0.10), (2.50, -2.70, 0.20), (3.50, -3.50, 0.30)]
+            float[] widths = [0.14, 0.11, 0.08, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+
+        # Basal_01: -X -Y direction (left-down)
+        def BasisCurves "Basal_01" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(-0.85, -0.95, 0.0), (-1.60, -1.80, -0.10), (-2.50, -2.70, -0.20), (-3.50, -3.50, -0.30)]
+            float[] widths = [0.14, 0.11, 0.08, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+
+        # Basal_02: +Z -Y direction (forward-down)
+        def BasisCurves "Basal_02" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.1, -0.95, 0.85), (0.15, -1.80, 1.60), (0.20, -2.70, 2.50), (0.30, -3.50, 3.50)]
+            float[] widths = [0.14, 0.11, 0.08, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+
+        # Basal_03: -Z -Y direction (back-down)
+        def BasisCurves "Basal_03" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [4]
+            point3f[] points = [(0.1, -0.95, -0.85), (0.15, -1.80, -1.60), (0.20, -2.70, -2.50), (0.30, -3.50, -3.50)]
+            float[] widths = [0.14, 0.11, 0.08, 0.04]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.88, 0.72, 0.76)]
+        }
+    }
+
+    # ─── AXON ────────────────────────────────────────────────────────────────
+    # Long descending axon — this is the corticostriatal projection fiber.
+    # Travels Y- through internal capsule to reach the striatum.
+    # Length = 12 units reflects the long-range nature of cortical projections.
+    # Slightly cooler color (violet) to distinguish axon from dendrites.
+
+    def Scope "Axon" {
+        def BasisCurves "MainAxon" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [5]
+            point3f[] points = [(0.0, -1.42, 0.0), (0.1, -4.0, 0.1), (-0.1, -6.5, 0.3), (0.15, -9.0, 0.2), (0.0, -12.0, 0.5)]
+            float[] widths = [0.11, 0.10, 0.09, 0.07, 0.05]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.75, 0.70, 0.88)]
+        }
+
+        # Axon collaterals — branching projections to multiple striatal targets
+        # (Both D1 and D2 MSNs receive input from the same cortical axon)
+        def BasisCurves "Collateral_D1" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [3]
+            point3f[] points = [(0.0, -12.0, 0.5), (-0.8, -12.6, 0.6), (-1.5, -13.0, 0.8)]
+            float[] widths = [0.05, 0.04, 0.03]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.75, 0.70, 0.88)]
+        }
+        def BasisCurves "Collateral_D2" {
+            uniform token type = "linear"
+            uniform token basis = "bezier"
+            int[] curveVertexCounts = [3]
+            point3f[] points = [(0.0, -12.0, 0.5), (0.8, -12.6, 0.4), (1.5, -13.0, 0.2)]
+            float[] widths = [0.05, 0.04, 0.03]
+            uniform token widthsInterpolation = "vertex"
+            color3f[] primvars:displayColor = [(0.75, 0.70, 0.88)]
+        }
+
+        # Terminal boutons at collateral ends
+        def Sphere "Bouton_D1" {
+            double radius = 0.12
+            double3 xformOp:translate = (-1.5, -13.0, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            color3f[] primvars:displayColor = [(0.1, 0.85, 0.40)]
+        }
+        def Sphere "Bouton_D2" {
+            double radius = 0.12
+            double3 xformOp:translate = (1.5, -13.0, 0.2)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            color3f[] primvars:displayColor = [(0.1, 0.85, 0.40)]
+        }
+    }
+}

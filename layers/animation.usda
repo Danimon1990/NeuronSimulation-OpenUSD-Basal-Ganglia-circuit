@@ -1,0 +1,334 @@
+#usda 1.0
+(
+    doc = """Animation Layer — Pulse timeSamples, Emissive Flashes, Dopamine Wisps
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Time-varying attributes — timeSamples
+    ═══════════════════════════════════════════════════════════
+
+    USD animation uses timeSamples directly on attributes:
+      color3f inputs:emissiveColor.timeSamples = { 0: (0,0,0), 10: (1,0.5,0), 20: (0,0,0) }
+
+    This is different from many DCCs which use curve fcurves or baked channels.
+    USD timeSamples are:
+      - Stored directly on the attribute spec in the layer
+      - Interpolated linearly by default between samples
+      - Accessible via UsdAttribute.Get(time) in Python
+      - The strongest opinion for that attribute at that time wins (LIVRPS still applies)
+
+    XFORMOP STACKING:
+      xformOp:translate, xformOp:rotateXYZ, xformOp:scale are all separate attributes.
+      Their EVALUATION ORDER is defined by xformOpOrder[].
+      Left-to-right in xformOpOrder = first-to-last transformation applied.
+      Example: ['xformOp:translate', 'xformOp:rotateXYZ']
+      = translate the object, THEN rotate around its new position.
+      vs ['xformOp:rotateXYZ', 'xformOp:translate'] = rotate in place, THEN move.
+      This matters for orbital animations (rotate-then-translate = orbit around center).
+      Our camera uses translate THEN rotate = move to orbit position, then aim at center.
+
+    THIS LAYER IS THE STRONGEST SUBLAYER:
+      Listed first in basal_ganglia.usda's subLayers.
+      Its timeSamples override any static values in neurons.usda or stimulus.usda.
+      This is intentional: animations must not be overridden by data injection.
+      The pipeline flow is: script writes stimulus → animation overrides for visuals.
+
+    PULSE ORBS:
+      'Pulse orbs' are small Sphere prims that animate along axon paths.
+      They represent action potentials traveling down axons.
+      We animate xformOp:translate to move them along the connection curves.
+      xformOp:scale timeSamples control visibility — scale (0,0,0) = invisible,
+      scale (1,1,1) = full size. This is better than visibility for smooth transitions.
+
+    DOPAMINE WISPS (PointInstancer timeSamples):
+      Dopamine vesicles rise Y+ from SNc toward striatum continuously.
+      We use positions.timeSamples to key all particle positions at intervals.
+
+      EXAM: PointInstancer positions vs velocities:
+        Explicit timeSamples on positions[]: full control, larger file size.
+        velocities attribute: renderer extrapolates between samples using velocity.
+          position_at_t = position_at_sample + velocity * (t - sample_time)
+        Use timeSamples for precision (hero particles, looping).
+        Use velocities for large particle crowds where approximation is acceptable.
+
+    ANIMATION TIMELINE (240 frames at 24fps = 10 seconds):
+      Frames   0-20:   Cortex receives stimulus, brightens
+      Frames  20-60:   CortexToStriatum pulse orb travels
+      Frames  55-90:   D1 MSN and D2 MSN flash (both receive cortical input)
+      Frames  80-120:  D1ToGPi pulse orb travels (direct pathway propagates)
+      Frames 110-150:  GPi dims (being suppressed by D1 MSN GABA)
+      Frames 120-150:  KEY MOMENT — GPi falls silent
+      Frames 140-180:  GPiToThalamus pulse orb travels (RELEASE of thalamus)
+      Frames 135-200:  Thalamus fires with golden glow (action released!)
+      Frames   0-240:  Dopamine wisps rise continuously from SNc
+    """
+    defaultPrim = "World"
+)
+
+over "World"
+{
+    # ═══════════════════════════════════════════════════════════
+    # EMISSIVE FLASHES ON SOMAS — Direct Pathway (Go wins)
+    # ═══════════════════════════════════════════════════════════
+    #
+    # These primvars:emissiveFlash attributes are custom primvars.
+    # In a production pipeline, you would connect these to the
+    # shader's inputs:emissiveColor via UsdShade connections.
+    # Here they document the intended animation timing for each nucleus.
+    # The emissive values correspond to material colors in shaders.usda.
+
+    # ─── CORTEX FLASH ───────────────────────────────────────────────────────
+    # Cortex receives input stimulus at frame 0. Brightens frames 0-30.
+    # Peak at frame 10: (1.0, 0.4, 0.55) = bright pink-red = motor cortex activation.
+
+    over "Cortex"
+    {
+        over "PyramidalNeuron"
+        {
+            color3f primvars:emissiveFlash.timeSamples = {
+                0: (0.0, 0.0, 0.0),
+                5: (0.4, 0.2, 0.3),
+                10: (1.0, 0.4, 0.55),
+                20: (0.8, 0.3, 0.4),
+                30: (0.0, 0.0, 0.0)
+            }
+        }
+    }
+
+    # ─── STRIATUM FLASHES ───────────────────────────────────────────────────
+    # Both D1 and D2 MSNs receive the cortical input ~40ms after cortex fires.
+    # In scene time: cortex peak at frame 10, striatum peak ~frame 70 (60ms at 24fps).
+    # D1 flashes blue (direct pathway signature).
+    # D2 flashes amber (indirect pathway signature).
+    # Both are active simultaneously — the circuit competes in parallel.
+
+    over "Striatum"
+    {
+        over "D1_MSN"
+        {
+            # Blue flash = D1 direct pathway active
+            color3f primvars:emissiveFlash.timeSamples = {
+                55: (0.0, 0.0, 0.0),
+                60: (0.1, 0.2, 0.8),
+                70: (0.2, 0.4, 1.0),
+                80: (0.1, 0.2, 0.8),
+                90: (0.0, 0.0, 0.0)
+            }
+        }
+        over "D2_MSN"
+        {
+            # Amber flash = D2 indirect pathway active
+            color3f primvars:emissiveFlash.timeSamples = {
+                55: (0.0, 0.0, 0.0),
+                60: (0.4, 0.2, 0.0),
+                70: (1.0, 0.55, 0.1),
+                80: (0.4, 0.2, 0.0),
+                90: (0.0, 0.0, 0.0)
+            }
+        }
+    }
+
+    # ─── GPi SUPPRESSION FLASH ──────────────────────────────────────────────
+    # KEY VISUAL MOMENT: GPi dims as D1 MSN GABA suppresses it.
+    # Frames 110-120: GPi at peak inhibitory activity (receiving GABA from D1 MSN)
+    # Frames 120-150: GPi goes dark — suppressed! — the gate opens for thalamus.
+    # This is visually the most important event: the dark GPi = movement released.
+
+    over "GPi"
+    {
+        over "GPi_Neuron"
+        {
+            color3f primvars:emissiveFlash.timeSamples = {
+                110: (0.3, 0.15, 0.5),
+                120: (0.5, 0.25, 0.8),
+                130: (0.1, 0.05, 0.2),
+                140: (0.02, 0.01, 0.04),
+                150: (0.0, 0.0, 0.0)
+            }
+        }
+    }
+
+    # ─── THALAMUS RELEASE FLASH ─────────────────────────────────────────────
+    # When GPi goes silent (frame 140+), thalamus fires with golden glow.
+    # This is the VICTORY moment — the direct pathway won, action is released.
+    # Peak gold at frame 150: (1.0, 0.95, 0.7) = ThalamicMaterial full emissive.
+    # Thalamic_Neuron's warm gold represents the motor command propagating to cortex.
+
+    over "Thalamus"
+    {
+        over "Thalamic_Neuron"
+        {
+            color3f primvars:emissiveFlash.timeSamples = {
+                135: (0.0, 0.0, 0.0),
+                142: (0.3, 0.28, 0.1),
+                150: (1.0, 0.95, 0.7),
+                165: (0.8, 0.75, 0.5),
+                180: (0.4, 0.38, 0.2),
+                200: (0.0, 0.0, 0.0)
+            }
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════
+    # PULSE ORBS — Action Potential Spheres
+    # ═══════════════════════════════════════════════════════════
+    #
+    # Each orb is a def Sphere (not an 'over') — these are NEW prims created
+    # by this animation layer in the /World/PulseOrbs scope.
+    # Because this is the STRONGEST sublayer, these prims are authoritative.
+    #
+    # SCALE HIDE/SHOW TECHNIQUE:
+    #   xformOp:scale.timeSamples: (0,0,0) = invisible, (1,1,1) = full size
+    #   One frame before travel starts: scale to (0,0,0) → hidden
+    #   First frame of travel: scale to (1,1,1) → appear
+    #   Last frame of travel: scale to (1,1,1) → still visible
+    #   One frame after travel ends: scale to (0,0,0) → vanish
+    #   This creates a clean appear/vanish without using visibility attribute.
+    #
+    # xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    #   Translate first (position the orb), then scale (size it up or zero it).
+    #   If reversed, scaling at origin then translating = orb at correct position
+    #   but scale would affect translation distance. Always translate first.
+
+    def Scope "PulseOrbs"
+    {
+        # ── Cortex → Striatum pulse (frames 20-60) ─────────────────────────
+        # Orange = glutamatergic. Travels from (0,18,0) to (-4,10,0).
+        # Follows the Cortex_to_D1 connection curve path approximately.
+
+        def Sphere "CortexToStriatum"
+        {
+            double radius = 0.2
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+
+            double3 xformOp:translate.timeSamples = {
+                0:  (0.0, 18.0, 0.0),
+                20: (0.0, 18.0, 0.0),
+                40: (-2.0, 14.0, 0.0),
+                60: (-4.0, 10.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0),
+                20: (1.0, 1.0, 1.0),
+                59: (1.0, 1.0, 1.0),
+                60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── D1 → GPi pulse (frames 80-120, direct pathway) ─────────────────
+        # Blue = GABAergic D1 MSN signal to GPi.
+        # This is the SUPPRESSION signal that will silence GPi.
+        # Travels from D1 MSN at (-4,10,0) to GPi at (-5,2,0).
+
+        def Sphere "D1ToGPi"
+        {
+            double radius = 0.2
+            color3f[] primvars:displayColor = [(0.2, 0.4, 1.0)]
+
+            double3 xformOp:translate.timeSamples = {
+                80:  (-4.0, 10.0, 0.0),
+                100: (-4.5, 6.0, 0.0),
+                120: (-5.0, 2.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79:  (0.0, 0.0, 0.0),
+                80:  (1.0, 1.0, 1.0),
+                119: (1.0, 1.0, 1.0),
+                120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── GPi → Thalamus pulse (frames 140-180, direct pathway win) ───────
+        # Gold = thalamic release signal. This is the MOST IMPORTANT pulse:
+        # GPi is now silent, and this golden orb represents the disinhibition —
+        # the 'release from suppression' that allows the thalamus to fire.
+        # Travels from GPi at (-5,2,0) to Thalamus at (0,-10,0).
+
+        def Sphere "GPiToThalamus"
+        {
+            double radius = 0.2
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+
+            double3 xformOp:translate.timeSamples = {
+                140: (-5.0, 2.0, 0.0),
+                160: (-2.5, -4.0, 0.0),
+                180: (0.0, -10.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0),
+                140: (1.0, 1.0, 1.0),
+                179: (1.0, 1.0, 1.0),
+                180: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════
+    # SNc DOPAMINE WISPS — PointInstancer Animation
+    # ═══════════════════════════════════════════════════════════
+    #
+    # EXAM: positions timeSamples on PointInstancer
+    # We override the DopamineParticles PointInstancer in the SNc payload asset.
+    # The 'over' chain: over "World" > over "SNc" > over "SNcNeuron" > over "DopamineParticles"
+    #
+    # KEY PATTERN: This uses 'over' all the way down — we don't redefine the
+    # PointInstancer, we only override the positions attribute within it.
+    # The protoIndices, orientations, and Prototypes/Vesicle remain from the asset.
+    #
+    # LOOP STRUCTURE (120-frame loop that repeats):
+    #   Frame 0:   particles at resting positions (Y = 1.2 to 12.5)
+    #   Frame 120: particles shifted up +1.0 Y (Y = 2.2 to 13.5)
+    #   Frame 121: reset to resting positions (hard cut, but disguised by density)
+    #   Frame 240: shifted up again (second loop)
+    #
+    # The hard reset at frame 121 is disguised because the particles are dense
+    # enough that the collective 'flow' maintains the visual impression of
+    # continuous upward movement even during the instantaneous reset.
+    #
+    # WHY NOT USE VELOCITIES?
+    # We want a perfectly looping animation that exactly repeats every 120 frames.
+    # Velocity-based extrapolation can drift. Explicit timeSamples give exact positions.
+    # The file size cost is manageable for 20 particles at 2 keyframes per loop.
+
+    over "SNc"
+    {
+        over "SNcNeuron"
+        {
+            over "DopamineParticles"
+            {
+                point3f[] positions.timeSamples = {
+                    0: [
+                        (0.1, 1.2, 0.1), (-0.1, 1.8, -0.1), (0.15, 2.4, 0.1), (-0.05, 3.0, -0.15),
+                        (0.1, 3.6, 0.2), (-0.15, 4.2, -0.1), (0.05, 4.8, 0.15), (0.2, 5.4, -0.05),
+                        (-0.1, 6.0, 0.1), (0.1, 6.6, -0.2), (-0.2, 7.2, 0.1), (0.05, 7.8, 0.15),
+                        (0.15, 8.4, -0.1), (-0.1, 9.0, 0.2), (0.1, 9.6, -0.15), (-0.15, 10.2, 0.1),
+                        (0.05, 10.8, -0.1), (0.2, 11.4, 0.15), (-0.1, 12.0, -0.2), (0.1, 12.5, 0.1)
+                    ],
+                    120: [
+                        (0.1, 2.2, 0.1), (-0.1, 2.8, -0.1), (0.15, 3.4, 0.1), (-0.05, 4.0, -0.15),
+                        (0.1, 4.6, 0.2), (-0.15, 5.2, -0.1), (0.05, 5.8, 0.15), (0.2, 6.4, -0.05),
+                        (-0.1, 7.0, 0.1), (0.1, 7.6, -0.2), (-0.2, 8.2, 0.1), (0.05, 8.8, 0.15),
+                        (0.15, 9.4, -0.1), (-0.1, 10.0, 0.2), (0.1, 10.6, -0.15), (-0.15, 11.2, 0.1),
+                        (0.05, 11.8, -0.1), (0.2, 12.4, 0.15), (-0.1, 13.0, -0.2), (0.1, 13.5, 0.1)
+                    ],
+                    121: [
+                        (0.1, 1.2, 0.1), (-0.1, 1.8, -0.1), (0.15, 2.4, 0.1), (-0.05, 3.0, -0.15),
+                        (0.1, 3.6, 0.2), (-0.15, 4.2, -0.1), (0.05, 4.8, 0.15), (0.2, 5.4, -0.05),
+                        (-0.1, 6.0, 0.1), (0.1, 6.6, -0.2), (-0.2, 7.2, 0.1), (0.05, 7.8, 0.15),
+                        (0.15, 8.4, -0.1), (-0.1, 9.0, 0.2), (0.1, 9.6, -0.15), (-0.15, 10.2, 0.1),
+                        (0.05, 10.8, -0.1), (0.2, 11.4, 0.15), (-0.1, 12.0, -0.2), (0.1, 12.5, 0.1)
+                    ],
+                    240: [
+                        (0.1, 2.2, 0.1), (-0.1, 2.8, -0.1), (0.15, 3.4, 0.1), (-0.05, 4.0, -0.15),
+                        (0.1, 4.6, 0.2), (-0.15, 5.2, -0.1), (0.05, 5.8, 0.15), (0.2, 6.4, -0.05),
+                        (-0.1, 7.0, 0.1), (0.1, 7.6, -0.2), (-0.2, 8.2, 0.1), (0.05, 8.8, 0.15),
+                        (0.15, 9.4, -0.1), (-0.1, 10.0, 0.2), (0.1, 10.6, -0.15), (-0.15, 11.2, 0.1),
+                        (0.05, 11.8, -0.1), (0.2, 12.4, 0.15), (-0.1, 13.0, -0.2), (0.1, 13.5, 0.1)
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,229 @@
+#usda 1.0
+(
+    doc = """Shader Layer — UsdPreviewSurface Material Definitions
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: UsdShade — UsdPreviewSurface Material Network
+    ═══════════════════════════════════════════════════════════
+
+    USD's portable shader is UsdPreviewSurface. Here is the complete topology:
+
+      UsdMaterial prim  →  declares inputs/outputs namespaces
+          |
+          outputs:surface.connect = <Shader.outputs:surface>
+          |
+      UsdShader prim (info:id = 'UsdPreviewSurface')
+          inputs:diffuseColor   — base color
+          inputs:emissiveColor  — self-illumination (used for pulse animations)
+          inputs:roughness      — 0=mirror, 1=fully diffuse
+          inputs:metallic       — 0=dielectric, 1=conductor
+          inputs:opacity        — 1.0=opaque
+          outputs:surface       — the TERMINAL output consumed by renderers
+
+    The outputs:surface TERMINAL is the key concept:
+      Hydra (USD's rendering framework) traverses the scene, finds prims with
+      material:binding relationship, follows it to the Material, then looks for
+      outputs:surface to find the shader network entry point.
+
+    UsdPreviewSurface is defined in UsdShade. It is:
+      - Not path-traced PBR but a universal approximation
+      - Supported by: Storm (usdview), Omniverse RTX, Maya, Houdini, Blender
+      - Renderers that have their own shaders (RenderMan, Arnold) use it as a fallback
+
+    EXAM: Know the connection syntax:
+      token outputs:surface.connect = </Materials/MyMat/Surface.outputs:surface>
+      The .connect suffix makes this a connection, not a value.
+
+    EXAM: UsdShade namespace conventions:
+      inputs:  — data flowing INTO the shader node (parameters you set)
+      outputs: — data flowing OUT of the shader node (results you connect from)
+      A connection goes FROM an output TO an input: input.connect = <prim.output>
+
+    HOW MATERIAL BINDING WORKS:
+      To bind a material to a prim, use the MaterialBindingAPI:
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        rel material:binding = </Materials/DirectPathwayMaterial>
+      Hydra follows this relationship to find the Material prim,
+      then uses outputs:surface to find the shader entry point.
+
+    RELATIONSHIP TO PRIMVARS:
+      displayColor primvars (color3f[] primvars:displayColor) are a FALLBACK.
+      They display in simple preview mode when no material is bound.
+      When a Material IS bound, the Material overrides displayColor.
+      Both can coexist: displayColor for viewport preview,
+      Material for final render.
+    """
+    defaultPrim = "Materials"
+)
+
+def Xform "Materials" (
+    doc = "Container for all scene materials. Referenced by neurons via material:binding."
+)
+{
+    # ─── NeuronBaseMaterial ───────────────────────────────────────────────────
+    # Base material for unspecialized neurons.
+    # Near-white diffuse with slight blue tint = neutral neural tissue color.
+    # Zero emissive by default — animation.usda flashes emissive via primvars.
+
+    def Material "NeuronBaseMaterial" (
+        doc = "Generic neuron material — pale blue-white, matte"
+    )
+    {
+        # CONNECTION SYNTAX EXAM NOTE:
+        # 'token outputs:surface.connect' creates a shader connection.
+        # The path </Materials/NeuronBaseMaterial/Surface.outputs:surface>
+        # navigates to the child Shader prim named 'Surface' and reads
+        # its output named 'outputs:surface'.
+        # This is the entry point Hydra uses to resolve the shader network.
+        token outputs:surface.connect = </Materials/NeuronBaseMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.9, 0.95, 1.0)
+            float inputs:roughness = 0.3
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.0, 0.0, 0.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── DirectPathwayMaterial ────────────────────────────────────────────────
+    # D1 MSN and Go pathway elements. Blue with blue emissive glow.
+    # emissiveColor represents the slight luminance of an active neuron.
+    # In animation.usda, this value is keyframed brighter during Go pathway activation.
+
+    def Material "DirectPathwayMaterial" (
+        doc = "D1 MSN direct/Go pathway — blue, slightly emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/DirectPathwayMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.5, 0.6, 1.0)
+            float inputs:roughness = 0.3
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.2, 0.5, 1.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── IndirectPathwayMaterial ──────────────────────────────────────────────
+    # D2 MSN and NoGo pathway elements. Amber/orange with amber emissive.
+    # Color contrast with direct (blue) makes pathway direction visually clear.
+
+    def Material "IndirectPathwayMaterial" (
+        doc = "D2 MSN indirect/NoGo pathway — amber, slightly emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/IndirectPathwayMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (1.0, 0.7, 0.3)
+            float inputs:roughness = 0.3
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (1.0, 0.55, 0.1)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── InhibitoryMaterial ───────────────────────────────────────────────────
+    # GPi and GPe — tonically active inhibitory neurons.
+    # Purple/violet: inhibitory in neuroscience convention (GABA = purple).
+    # Slightly higher roughness = more diffuse, less specular highlight.
+
+    def Material "InhibitoryMaterial" (
+        doc = "Inhibitory neurons (GPi, GPe) — deep purple, GABA-colored"
+    )
+    {
+        token outputs:surface.connect = </Materials/InhibitoryMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.5, 0.3, 0.7)
+            float inputs:roughness = 0.4
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.1, 0.05, 0.2)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── ExcitatoryMaterial ───────────────────────────────────────────────────
+    # STN — the only excitatory nucleus in basal ganglia.
+    # Teal/cyan: excitatory in neuroscience convention (Glutamate = green/teal).
+
+    def Material "ExcitatoryMaterial" (
+        doc = "Excitatory neurons (STN, cortex collaterals) — teal, glutamate-colored"
+    )
+    {
+        token outputs:surface.connect = </Materials/ExcitatoryMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.3, 0.8, 0.7)
+            float inputs:roughness = 0.3
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.0, 0.9, 0.8)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── ThalamicMaterial ────────────────────────────────────────────────────
+    # Thalamic relay neuron — warm gold when active (action released).
+    # In the resting state (GPi suppressing thalamus), emissive = 0.
+    # When the Go pathway wins and GPi is silenced, thalamus fires with golden glow.
+    # animation.usda keyframes emissive (0,0,0) → (1.0, 0.95, 0.7) → (0,0,0)
+    # This is the visual climax of the Go-pathway animation.
+
+    def Material "ThalamicMaterial" (
+        doc = "Thalamic relay — warm gold when active. Emissive animated to peak (1.0,0.95,0.7) during action release."
+    )
+    {
+        token outputs:surface.connect = </Materials/ThalamicMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.9, 0.85, 0.5)
+            float inputs:roughness = 0.25
+            float inputs:metallic = 0.0
+            # Base emissive = 0. Peak value (1.0, 0.95, 0.7) is the fully active state.
+            # animation.usda drives this value via primvars:emissiveFlash keyframes.
+            color3f inputs:emissiveColor = (0.0, 0.0, 0.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── DopamineMaterial ────────────────────────────────────────────────────
+    # SNc dopaminergic neurons — yellow-green, always slightly emissive.
+    # Full emissive: (0.8, 1.0, 0.2). Baseline = 0.3 * full = (0.24, 0.30, 0.06)
+    # Always-on baseline emissive represents the tonic dopamine release
+    # that SNc neurons maintain even at rest (4 Hz spontaneous firing).
+    # During reward signals, emissive increases to full (0.8, 1.0, 0.2).
+    # Slightly metallic (0.1) gives dopamine a subtle sheen.
+
+    def Material "DopamineMaterial" (
+        doc = "Dopaminergic neurons (SNc) — yellow-green, always slightly emissive. Full emissive (0.8,1.0,0.2) during reward."
+    )
+    {
+        token outputs:surface.connect = </Materials/DopamineMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.7, 0.9, 0.2)
+            float inputs:roughness = 0.2
+            float inputs:metallic = 0.1
+            # Baseline = 30% of full dopamine emissive (0.8, 1.0, 0.2)
+            # 0.3 * (0.8, 1.0, 0.2) = (0.24, 0.30, 0.06)
+            color3f inputs:emissiveColor = (0.24, 0.30, 0.06)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+}

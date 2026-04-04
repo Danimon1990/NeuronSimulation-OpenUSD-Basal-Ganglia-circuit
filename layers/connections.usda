@@ -1,0 +1,213 @@
+#usda 1.0
+(
+    doc = """Connections Layer — Synaptic Pathway Curves
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: UsdGeomBasisCurves for non-geometry data
+    ═══════════════════════════════════════════════════════════
+
+    These BasisCurves represent the synaptic projections between brain regions.
+    In a full pipeline, these would be procedurally generated from neuron positions.
+    Here they demonstrate UsdGeomBasisCurves for non-geometry data (pathways).
+
+    EXAM: BasisCurves can represent hair, fur, wires, tubes, or any spline data.
+    The widths attribute controls tube radius per-vertex (vertex interpolation).
+
+    COLOR CODING (neurotransmitter convention):
+      Orange (0.9, 0.5, 0.2)    — Glutamate (excitatory, Go/Cortical/STN)
+      Purple (0.4, 0.3, 0.8)    — GABA (inhibitory, D1/D2/GPi/GPe)
+      Yellow-green (0.8, 1.0, 0.2) — Dopamine (modulatory, SNc)
+
+    WORLD-SPACE POSITIONS:
+      Each curve uses absolute world-space coordinates matching the group prim
+      translate values from neurons.usda:
+        Cortex:   Y=18     Striatum: Y=10     GPi: (-5, 2, 0)
+        GPe: (5, 2, 0)   STN: (8, -4, 2)    Thalamus: Y=-10
+        SNc: (0, 6, -10)
+
+    widthsInterpolation = "vertex" means one width value per curve vertex.
+    Using uniform widths here (all same value) keeps the connection tubes
+    consistent in thickness, distinguishing them from the tapered dendrites.
+    """
+    defaultPrim = "Connections"
+)
+
+def Xform "Connections" (
+    doc = "Synaptic projection curves connecting basal ganglia nuclei"
+)
+{
+    # ─── CORTEX → STRIATUM (Corticostriatal, Glutamate) ──────────────────────
+    # Cortex Y=18 → D1_MSN at (-4, 10, 0) in world space (Striatum Y=10 + D1 offset -4X)
+    # Orange = glutamatergic excitatory projection
+
+    def BasisCurves "Cortex_to_D1" (
+        doc = "Corticostriatal projection to D1 MSN — glutamatergic, excitatory (Go pathway driver)"
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(0.0, 18.0, 0.0), (-1.0, 15.0, 0.0), (-2.0, 12.0, 0.0), (-4.0, 10.0, 0.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.9, 0.5, 0.2)]
+    }
+
+    # Cortex Y=18 → D2_MSN at (4, 10, 0) in world space
+    def BasisCurves "Cortex_to_D2" (
+        doc = "Corticostriatal projection to D2 MSN — glutamatergic, excitatory (NoGo pathway driver)"
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(0.0, 18.0, 0.0), (1.0, 15.0, 0.0), (2.0, 12.0, 0.0), (4.0, 10.0, 0.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.9, 0.5, 0.2)]
+    }
+
+    # ─── STRIATUM → GLOBUS PALLIDUS (GABA, Inhibitory) ───────────────────────
+    # D1 MSN at (-4, 10, 0) → GPi at (-5, 2, 0) — DIRECT pathway
+    # When D1 fires: this connection INHIBITS GPi → GPi goes silent → Thalamus fires
+
+    def BasisCurves "D1_to_GPi" (
+        doc = "D1 MSN → GPi — direct pathway inhibitory projection. GABAergic. When active: silences GPi, releases thalamus."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(-4.0, 10.0, 0.0), (-4.3, 7.0, 0.0), (-4.7, 4.0, 0.0), (-5.0, 2.0, 0.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.4, 0.3, 0.8)]
+    }
+
+    # D2 MSN at (4, 10, 0) → GPe at (5, 2, 0) — INDIRECT pathway
+    # When D2 fires: this connection INHIBITS GPe → GPe goes silent → STN disinhibited
+
+    def BasisCurves "D2_to_GPe" (
+        doc = "D2 MSN → GPe — indirect pathway inhibitory projection. GABAergic. When active: silences GPe, releases STN."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(4.0, 10.0, 0.0), (4.3, 7.0, 0.0), (4.7, 4.0, 0.0), (5.0, 2.0, 0.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.4, 0.3, 0.8)]
+    }
+
+    # ─── GPe → STN (GABA, Inhibitory) ────────────────────────────────────────
+    # GPe at (5, 2, 0) → STN at (8, -4, 2)
+    # GPe normally SUPPRESSES STN. When GPe is silenced (by D2 MSN), STN is released.
+
+    def BasisCurves "GPe_to_STN" (
+        doc = "GPe → STN — inhibitory projection. GABAergic. GPe suppresses STN at rest; D2 MSN disrupts this."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(5.0, 2.0, 0.0), (6.0, 0.0, 0.5), (7.0, -2.0, 1.0), (8.0, -4.0, 2.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.4, 0.3, 0.8)]
+    }
+
+    # ─── STN → GPi (Glutamate, Excitatory) ───────────────────────────────────
+    # STN at (8, -4, 2) → GPi at (-5, 2, 0)
+    # Long cross-connection: STN DRIVES GPi, reinforcing thalamic suppression.
+    # In indirect pathway: STN activity = more GPi firing = stronger NoGo signal.
+    # 5 points for this longer, more curved path across the scene.
+
+    def BasisCurves "STN_to_GPi" (
+        doc = "STN → GPi — excitatory projection. Glutamatergic. STN drives GPi to suppress thalamus (NoGo amplifier)."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [5]
+        point3f[] points = [(8.0, -4.0, 2.0), (4.0, -3.0, 1.5), (0.0, -1.0, 1.0), (-3.0, 0.0, 0.5), (-5.0, 2.0, 0.0)]
+        float[] widths = [0.07, 0.07, 0.07, 0.07, 0.07]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.9, 0.5, 0.2)]
+    }
+
+    # ─── GPi → THALAMUS (GABA, Inhibitory) ───────────────────────────────────
+    # GPi at (-5, 2, 0) → Thalamus at (0, -10, 0)
+    # This is the TONIC SUPPRESSION connection. GPi continuously fires ~70 Hz,
+    # keeping the thalamus silent. The Go pathway BREAKS this connection by
+    # silencing GPi. Purple = GABAergic inhibitory projection.
+
+    def BasisCurves "GPi_to_Thalamus" (
+        doc = "GPi → Thalamus — tonic inhibitory projection. GABAergic. This is the 'gate' — normally closed. Go pathway opens it."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(-5.0, 2.0, 0.0), (-3.0, -2.0, 0.0), (-1.0, -6.0, 0.0), (0.0, -10.0, 0.0)]
+        float[] widths = [0.06, 0.06, 0.06, 0.06]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.4, 0.3, 0.8)]
+    }
+
+    # ─── SNc → STRIATUM (Dopamine, Modulatory) ───────────────────────────────
+    # SNc at (0, 6, -10) → D1 MSN at (-4, 10, 0) and D2 MSN at (4, 10, 0)
+    # The nigrostriatal dopamine pathway. Thin (0.05) = modulatory, not driving.
+    # Yellow-green = dopaminergic.
+    #
+    # D1 MSNs: dopamine is EXCITATORY (D1 receptors, Gs pathway) → more Go
+    # D2 MSNs: dopamine is INHIBITORY (D2 receptors, Gi pathway) → less NoGo
+    # Net: dopamine biases the circuit toward movement initiation.
+
+    def BasisCurves "SNc_to_D1" (
+        doc = "SNc → D1 MSN — nigrostriatal dopamine. D1 receptor: excitatory. Dopamine facilitates Go pathway."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(0.0, 6.0, -10.0), (-1.0, 8.0, -6.0), (-2.0, 9.0, -3.0), (-4.0, 10.0, 0.0)]
+        float[] widths = [0.05, 0.05, 0.05, 0.05]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.8, 1.0, 0.2)]
+    }
+
+    def BasisCurves "SNc_to_D2" (
+        doc = "SNc → D2 MSN — nigrostriatal dopamine. D2 receptor: inhibitory. Dopamine suppresses NoGo pathway."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(0.0, 6.0, -10.0), (1.0, 8.0, -6.0), (2.0, 9.0, -3.0), (4.0, 10.0, 0.0)]
+        float[] widths = [0.05, 0.05, 0.05, 0.05]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.8, 1.0, 0.2)]
+    }
+
+    # ─── CORTEX → STN (Hyperdirect pathway, Glutamate) ───────────────────────
+    # Cortex at (0, 18, 0) → STN at (8, -4, 2)
+    # The HYPERDIRECT pathway bypasses the striatum entirely.
+    # It provides the fastest basal ganglia response to cortical input (~6ms)
+    # vs direct pathway (~30ms) and indirect pathway (~40ms).
+    # Function: rapid global suppression of actions (braking signal).
+    # Thinner than corticostriatal connections (0.05 vs 0.06) = secondary pathway.
+
+    def BasisCurves "Cortex_to_STN" (
+        doc = "Cortex → STN — hyperdirect pathway. Glutamatergic. Fastest BG pathway (~6ms). Provides rapid action suppression brake."
+    )
+    {
+        uniform token type = "linear"
+        uniform token basis = "bezier"
+        int[] curveVertexCounts = [4]
+        point3f[] points = [(0.0, 18.0, 0.0), (5.0, 12.0, 1.0), (7.0, 4.0, 1.5), (8.0, -4.0, 2.0)]
+        float[] widths = [0.05, 0.05, 0.05, 0.05]
+        uniform token widthsInterpolation = "vertex"
+        color3f[] primvars:displayColor = [(0.9, 0.5, 0.2)]
+    }
+}

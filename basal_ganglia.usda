@@ -1,0 +1,280 @@
+#usda 1.0
+(
+    doc = """Basal Ganglia Action Selection Circuit
+    Root stage — OpenUSD Portfolio Scene
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Composition Arcs — The Full Picture
+    ═══════════════════════════════════════════════════════════
+
+    SUBLAYER STACK AND COMPOSITION ORDER:
+
+    This stage uses sublayers to build up the scene from independent layers.
+    Sublayers are the SIMPLEST composition arc — they merge layers as if written
+    in one file, with earlier entries (top of list) having STRONGER opinions.
+
+    Our stack (strongest to weakest sublayer):
+      1. animation.usda    — pulse keyframes, emissive flashes (STRONGEST sublayer)
+      2. connections.usda  — axon pathway curves
+      3. neurons.usda      — neuron placement, schemas, metadata
+      4. shaders.usda      — material definitions
+      5. stimulus.usda     — Python-computed activation data (WEAKEST sublayer)
+
+    WHY stimulus.usda IS THE WEAKEST SUBLAYER:
+      stimulus.usda is written by stimulate.py with computed activation values.
+      Making it the weakest means:
+        - Artists can override any stimulus value in a stronger layer
+        - The local stage (this file) is always STRONGEST of all
+        - It creates a clean data pipeline: script writes, artists can correct
+      The Python script authors 'over' prims with neural:activationLevel values.
+      Since neurons.usda defines static defaults, stimulus.usda can provide
+      dynamic values that override them at the weakest opinion level.
+      The local stage overrides EVERYTHING — ultimate artist control.
+
+    LIVRPS COMPOSITION ORDER (per USD specification):
+      L = Local opinions        — authored in THIS file and all sublayers (as a stack)
+      I = Inherits arcs         — from `inherits` composition arc
+      V = VariantSets           — variant selections on prims
+      R = References            — from `references` composition arc
+      P = Payloads              — from `payload` composition arc (deferred)
+      S = Specializes           — from `specializes` composition arc (weakest)
+
+    Sublayer opinions are part of 'L' (Local) — the entire sublayer stack collapses
+    into the Local opinion strength before comparing against References/Payloads.
+    This is why sublayer overrides beat referenced defaults.
+
+    PAYLOAD vs REFERENCE (SNc is a payload):
+      References: composed immediately when stage opens. Required geometry.
+      Payloads:   prim exists in scene graph but content is DEFERRED.
+                  Load with: stage.Load('/World/SNc')
+                  Unload with: stage.Unload('/World/SNc')
+      Use payloads for: large optional assets, LOD management, streaming scenes.
+      SNc sits in the background. For overhead views of the main circuit,
+      unloading SNc removes its geometry without deleting it from the scene.
+
+    DRAWMODE (UsdGeomModelAPI):
+      UsdGeomModelAPI is an Applied API schema — it adds model:drawMode to any prim.
+      NOT an IsA schema. The group Xforms are still Xforms, just with DrawMode data.
+
+      model:drawMode values:
+        'default' — render full geometry (all neurons visible)
+        'bounds'  — show only bounding box (circuit diagram view, fast rendering)
+        'cards'   — show textured quad sprites (billboard approximation)
+
+      vs visibility='invisible': DrawMode replaces with simpler representation.
+        visibility=invisible: prim renders nothing at all.
+        model:drawMode='bounds': prim renders as a box.
+
+      Renderer support: usdview/Storm YES, Omniverse YES, Maya/Houdini partial.
+      When a renderer doesn't support DrawMode it falls back to 'default'.
+      Pipeline use: shots that only need circuit topology use 'bounds' for fast preview.
+
+    CAMERA (UsdGeomCamera):
+      focalLength: distance from lens to film plane in mm (scene units / 10)
+      horizontalAperture: film back width in mm (36mm = full-frame sensor)
+      Orbit animation: 15 degrees over 240 frames. We decompose to:
+        - translate traces arc: radius 35, angle 0 degrees to 15 degrees
+          (35*cos(0), 4, 35*sin(0)) to (35*cos(15), 4, 35*sin(15))
+          = (35, 4, 0) to (33.81, 4, 9.06) approximately (33.8, 4, 9.1)
+        - rotateXYZ: Y component goes 0 to -15 degrees (camera turns to follow arc)
+
+    LIGHTS (UsdLux):
+      UsdLux defines the standard light schema for USD.
+      Lights are discovered by renderers via the UsdLuxListAPI or by traversal.
+      inputs:intensity / inputs:color use the 'inputs:' namespace (USD 20.11+).
+      DomeLight: infinite environment light from all directions (like an HDRI).
+      SphereLight: point light emitting from a sphere surface.
+    """
+
+    defaultPrim = "World"
+    upAxis = "Y"
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    endTimeCode = 240
+    timeCodesPerSecond = 24
+
+    subLayers = [
+        @layers/animation.usda@,
+        @layers/connections.usda@,
+        @layers/neurons.usda@,
+        @layers/shaders.usda@,
+        @layers/stimulus.usda@
+    ]
+)
+
+def Xform "World" (
+    prepend variantSets = "displayLOD"
+    doc = "Scene root. displayLOD variant controls DrawMode on all group prims."
+)
+{
+    # ─── DRAWMODE LOD VARIANT ──────────────────────────────────────────────────
+    # EXAM: VariantSets are defined on the prim that OWNS the variant selection.
+    # Here /World owns displayLOD. The variant uses 'over' to override
+    # model:drawMode on the group prims defined in neurons.usda.
+    # 'over' prims do not create new prims — they only override existing ones.
+    # If the target prim doesn't exist, the 'over' is silently ignored.
+    #
+    # The 'over' prims here are siblings to the actual prims (defined in neurons.usda).
+    # Because this root stage is a sublayer of the full composition, and local
+    # opinions (L in LIVRPS) are strongest, these variant overrides WIN over
+    # the model:drawMode = "default" set in neurons.usda.
+
+    variantSet "displayLOD" = {
+        "full_detail" (
+            doc = "Full neuron geometry — for hero shots and close-ups"
+        ) {
+            over "Striatum" {
+                uniform token model:drawMode = "default"
+            }
+            over "GPi" {
+                uniform token model:drawMode = "default"
+            }
+            over "GPe" {
+                uniform token model:drawMode = "default"
+            }
+            over "STN" {
+                uniform token model:drawMode = "default"
+            }
+            over "Thalamus" {
+                uniform token model:drawMode = "default"
+            }
+            over "SNc" {
+                uniform token model:drawMode = "default"
+            }
+        }
+        "circuit_diagram" (
+            doc = "Bounding box display — abstract circuit diagram view. Fast rendering."
+        ) {
+            over "Striatum" {
+                uniform token model:drawMode = "bounds"
+            }
+            over "GPi" {
+                uniform token model:drawMode = "bounds"
+            }
+            over "GPe" {
+                uniform token model:drawMode = "bounds"
+            }
+            over "STN" {
+                uniform token model:drawMode = "bounds"
+            }
+            over "Thalamus" {
+                uniform token model:drawMode = "bounds"
+            }
+            over "SNc" {
+                uniform token model:drawMode = "bounds"
+            }
+        }
+        "billboard_cards" (
+            doc = "Cards mode — textured quad sprites. Renderers substitute pre-baked textures."
+        ) {
+            over "Striatum" {
+                uniform token model:drawMode = "cards"
+            }
+            over "GPi" {
+                uniform token model:drawMode = "cards"
+            }
+            over "GPe" {
+                uniform token model:drawMode = "cards"
+            }
+            over "STN" {
+                uniform token model:drawMode = "cards"
+            }
+            over "Thalamus" {
+                uniform token model:drawMode = "cards"
+            }
+            over "SNc" {
+                uniform token model:drawMode = "cards"
+            }
+        }
+    }
+
+    # ─── CAMERA ────────────────────────────────────────────────────────────────
+    # EXAM: UsdGeomCamera
+    #   focalLength 50mm on 36mm film back = approximately 47 degree horizontal FOV
+    #   Orbital arc computed as: start (35, 4, 0), end (33.8, 4, 9.1)
+    #   This traces a 15-degree arc at radius 35 around world origin.
+    #   rotateXYZ Y: 0 → -15 degrees = camera turns to face center as it orbits.
+    #   xformOpOrder: translate THEN rotateXYZ = translate first, then rotate in place.
+
+    def Camera "Camera" (
+        doc = "Main circuit camera — slow orbital arc over 240 frames"
+    )
+    {
+        float2 clippingRange = (0.1, 10000)
+        float focalLength = 50
+        float horizontalAperture = 36.0
+        float verticalAperture = 20.25
+
+        double3 xformOp:translate.timeSamples = {
+            0: (35.0, 4.0, 0.0),
+            240: (33.8, 4.0, 9.1)
+        }
+        double3 xformOp:rotateXYZ.timeSamples = {
+            0: (-6.0, 0.0, 0.0),
+            240: (-6.0, -15.0, 0.0)
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
+    # ─── LIGHTS ────────────────────────────────────────────────────────────────
+    # EXAM: UsdLux — all USD lights use inputs: namespace (post USD 20.11)
+    # DomeLight emits from an infinite sphere — simulates environment/sky
+    # Renderers discover lights via UsdLuxListAPI traversal or prim type
+    #
+    # Light strategy: near-black ambient dome + targeted sphere fills
+    # Neuron emissive materials provide primary visual illumination cues.
+    # Lights provide fill and mood rather than key lighting.
+
+    def Scope "Lights" (
+        doc = "UsdLux lights. DomeLight = ambient. SphereLights = fills."
+    )
+    {
+        # Near-black dome: we rely on emissive materials for primary illumination.
+        # DomeLight with low intensity prevents pure black shadows while keeping
+        # the emissive animation as the primary visual storytelling element.
+        def DomeLight "AmbientDome" (
+            doc = "Near-black ambient. We rely on emissive materials for primary illumination."
+        )
+        {
+            float inputs:intensity = 0.05
+            color3f inputs:color = (0.05, 0.05, 0.12)
+        }
+
+        # Soft blue fill above cortex — suggests 'thinking' / executive function
+        # Positioned at Y=22 (above the cortical neuron at Y=18)
+        def SphereLight "CortexFill"
+        {
+            float inputs:intensity = 3.0
+            color3f inputs:color = (0.5, 0.7, 1.0)
+            float inputs:radius = 1.0
+            double3 xformOp:translate = (0, 22, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        # Dim purple below GPi — suggests suppression, inhibition
+        # GPi is at (-5, 2, 0). Fill below at (-5, -2, 0).
+        def SphereLight "GPiFill"
+        {
+            float inputs:intensity = 1.5
+            color3f inputs:color = (0.4, 0.2, 0.6)
+            float inputs:radius = 1.0
+            double3 xformOp:translate = (-5, -2, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        # SNc yellow-green dopamine light — pulses with dopamine release rhythm
+        # Positioned at SNc location (0, 6, -10).
+        # timeSamples create a slow pulsing effect representing tonic dopamine firing.
+        # Keyframes: intensity oscillates 1.5 → 2.8 → 1.5 over 80-frame cycles.
+        def SphereLight "SNcDopamineLight"
+        {
+            float inputs:intensity.timeSamples = {
+                0: 1.5, 40: 2.8, 80: 1.5, 120: 2.8, 160: 1.5, 200: 2.8, 240: 1.5
+            }
+            color3f inputs:color = (0.6, 1.0, 0.1)
+            float inputs:radius = 0.8
+            double3 xformOp:translate = (0, 6, -10)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+}

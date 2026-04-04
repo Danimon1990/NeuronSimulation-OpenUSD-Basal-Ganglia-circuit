@@ -1,0 +1,101 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    doc = """Stimulus Layer — written by stimulate.py
+
+    LEARNING NOTE: This is the WEAKEST sublayer in the composition stack.
+    Listed last in basal_ganglia.usda subLayers, it has the lowest priority
+    among sublayers. Its authored values are the computed defaults from
+    the stimulate.py script.
+
+    Being weakest means:
+    - animation.usda (stronger) can override any emissive value here
+    - neurons.usda (stronger) defines the static structure this layer modifies
+    - Artists can always author in a stronger layer to correct script output
+    - The local stage basal_ganglia.usda is ALWAYS strongest of all
+
+    EXAM: This file demonstrates USD Data Exchange:
+    External computation (Python) injects values into a scene via a dedicated
+    sublayer. The script uses Usd.Stage with SetEditTarget to target this file
+    precisely without affecting other layers.
+
+    Sdf vs Usd API:
+      Usd is composition-aware (reads composed values from all layers merged).
+      Sdf is layer-aware (reads/writes individual layer specs directly).
+    We use Usd.Stage.SetEditTarget to write ONLY to this layer, not to
+    the composed stage as a whole. This is the preferred production approach.
+
+    The stimulate.py script will author 'over' prims here like:
+        over \"World\" {
+            over \"Striatum\" {
+                over \"D1_MSN\" {
+                    float neural:activationLevel = 0.85
+                }
+            }
+        }
+    """
+)
+
+over "World"
+{
+    over "Cortex"
+    {
+        over "PyramidalNeuron"
+        {
+            float neural:activationLevel = 0.6
+        }
+    }
+
+    over "Striatum"
+    {
+        over "D1_MSN"
+        {
+            float neural:activationLevel = 0.942
+            float neural:dopamineInfluence = 0.95
+        }
+
+        over "D2_MSN"
+        {
+            float neural:activationLevel = 0.315
+            float neural:dopamineInfluence = 0.95
+        }
+    }
+
+    over "GPi"
+    {
+        over "GPi_Neuron"
+        {
+            float neural:activationLevel = 0.3926
+        }
+    }
+
+    over "GPe"
+    {
+        over "GPe_Neuron"
+        {
+            float neural:activationLevel = 0.811
+        }
+    }
+
+    over "STN"
+    {
+        over "STN_Neuron"
+        {
+            float neural:activationLevel = 0.4923
+        }
+    }
+
+    over "Thalamus"
+    {
+        over "Thalamic_Neuron"
+        {
+            float neural:activationLevel = 0.5682
+        }
+    }
+
+    over "SNc"
+    {
+        float neural:activationLevel = 0.95
+    }
+}
+

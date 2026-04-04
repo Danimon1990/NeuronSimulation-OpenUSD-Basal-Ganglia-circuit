@@ -1,0 +1,89 @@
+#usda 1.0
+(
+    doc = """NeuralStateAPI — Custom Applied API Schema Definition
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Data Modeling — IsA Schemas vs Applied API Schemas
+    ═══════════════════════════════════════════════════════════
+
+    TWO KINDS OF SCHEMAS IN USD:
+
+    1. IsA schemas (Typed schemas):
+       - Define a prim TYPE. The prim IS-A that type.
+       - Examples: UsdGeomSphere, UsdGeomMesh, UsdGeomBasisCurves
+       - How to spot them: `def Sphere "MySphere"` — "Sphere" is the type token
+       - A prim can only have ONE IsA schema (single type inheritance)
+       - They register properties AND define the prim's identity in the scene graph
+
+    2. Applied API schemas:
+       - Do NOT change the prim type. They ADD properties to any prim.
+       - Examples: UsdGeomModelAPI, UsdShadeMaterialBindingAPI, this NeuralStateAPI
+       - A prim can have MANY applied API schemas simultaneously
+       - Applied via: prepend apiSchemas = ["NeuralStateAPI", "ModelAPI"]
+       - They are like C++ mixins — they bring in a property namespace
+
+    WHY WE USE AN APPLIED API SCHEMA HERE:
+       Our neural state data (firingRate, pathway, activationLevel) should attach
+       to ANY neuron prim regardless of its geometry type. A pyramidal neuron is
+       an Xform (IsA). A sphere soma is a Sphere (IsA). We can't change their type.
+       Applied API = add our data WITHOUT changing their type. Perfect fit.
+
+    HOW apiSchemas METADATA WORKS:
+       When you write:
+           prepend apiSchemas = ["NeuralStateAPI"]
+       USD's schema registry looks up "NeuralStateAPI", finds this class definition,
+       and makes its property definitions available for validation/authoring.
+       The `prepend` means our schema is added BEFORE any existing apiSchemas entries.
+
+    PRODUCTION NOTE:
+       In a production pipeline, you would run `usdGenSchema` on this file
+       to generate C++ and Python bindings. Without code generation, USD won't
+       auto-validate values or provide API convenience methods. The schema still
+       documents the data contract and allows property authoring in any USD tool.
+
+    EXAM TIP:
+       Know the difference between these three tokens in apiSchemas:
+       - "singleApply"  — can only be applied once to a prim
+       - "multipleApply" — can be applied multiple times (with instance name)
+       NeuralStateAPI is singleApply: one neuron has exactly one neural state.
+    """
+)
+
+class "NeuralStateAPI" (
+    inherits = </APISchemaBase>
+    doc = """Applied API schema for neural state data.
+    Apply to any neuron prim with: prepend apiSchemas = ["NeuralStateAPI"]
+    """
+    customData = {
+        token apiSchemaType = "singleApply"
+        string className = "NeuralStateAPI"
+    }
+)
+{
+    float neural:firingRate = 0.0 (
+        doc = "Spontaneous firing rate in Hz. Range: 0.0 to 100.0."
+    )
+    token neural:neurotransmitter = "Glutamate" (
+        allowedTokens = ["Glutamate", "GABA", "Dopamine"]
+        doc = "Primary neurotransmitter released by this neuron."
+    )
+    token neural:pathway = "None" (
+        allowedTokens = ["Direct", "Indirect", "Hyperdirect", "Modulatory", "None"]
+        doc = "Role in the basal ganglia action selection circuit."
+    )
+    float neural:activationLevel = 0.0 (
+        doc = "Current activation 0.0-1.0. Written by stimulate.py into stimulus.usda."
+    )
+    float neural:dopamineInfluence = 0.0 (
+        doc = "Degree of SNc dopaminergic modulation. 0=none, 1=full."
+    )
+    asset neural:geometrySource (
+        doc = "SdfAssetPath to the USD geometry asset file for this neuron."
+    )
+    string neural:anatomicalName = "" (
+        doc = "Full anatomical name, e.g. 'Caudate Putamen D1 MSN'."
+    )
+    string neural:clinicalRelevance = "" (
+        doc = "Associated disease or clinical significance."
+    )
+}
