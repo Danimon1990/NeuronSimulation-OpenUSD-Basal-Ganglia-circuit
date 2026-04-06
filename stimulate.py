@@ -472,6 +472,454 @@ def write_to_stimulus_layer(values: dict, stage_path: str, lod: str = None) -> N
 
 
 # ═══════════════════════════════════════════════════════════
+# PATHWAY OVERRIDE LAYER GENERATION
+# ═══════════════════════════════════════════════════════════
+
+# Doc comment written into pathway_override.usda on every run.
+# This is the same text as the static comment in the initial template file,
+# kept here so the certification explanation survives each ImportFromString().
+_OVERRIDE_DOC_LINES = [
+    "Pathway Override Layer — written by stimulate.py",
+    "",
+    "    ═══════════════════════════════════════════════════════════",
+    "    USD DATA EXCHANGE PATTERN — Why this is the strongest sublayer",
+    "    ═══════════════════════════════════════════════════════════",
+    "",
+    "    SUBLAYER STACK (strongest first, as listed in basal_ganglia.usda):",
+    "      [0] pathway_override.usda  <- THIS FILE (strongest sublayer)",
+    "      [1] animation.usda         <- hardcoded Direct-pathway fallback",
+    "      [2] connections.usda",
+    "      [3] neurons.usda",
+    "      [4] shaders.usda",
+    "      [5] stimulus.usda          <- weakest (scalar activation data)",
+    "",
+    "    WHY THIS LAYER MUST BE STRONGER THAN animation.usda:",
+    "      animation.usda hard-codes the Direct pathway sequence. Its pulse",
+    "      orb xformOp:scale.timeSamples and Soma primvars:displayColor.timeSamples",
+    "      always show D1 MSN firing, GPi dimming, and Thalamus releasing.",
+    "      This layer sits at position [0] in the subLayers list so its opinions",
+    "      WIN over animation.usda in LIVRPS Local opinion resolution.",
+    "      Result: when Indirect wins, this layer zeros out the Direct orb",
+    "      scales and adds new D2ToGPe / STNToGPi pulse orbs instead.",
+    "",
+    "    USD DATA EXCHANGE CERTIFICATION PATTERN:",
+    "      compute_circuit() produces an activation dict. stimulate.py writes",
+    "      that result into TWO sublayers serving different roles:",
+    "",
+    "        activation scalars -> stimulus.usda           (weakest sublayer)",
+    "        pathway animation  -> pathway_override.usda   (strongest sublayer)",
+    "",
+    "      This file uses the Sdf (single-layer) API for full regeneration:",
+    "        Sdf.Layer.FindOrOpen(path)     -- open without a full stage",
+    "        layer.ImportFromString(usda)   -- replace entire content atomically",
+    "        layer.Save()                   -- write only this file to disk",
+    "",
+    "      Contrast with stimulus.usda which uses the Usd (composition-aware) API:",
+    "        Usd.Stage.Open() + SetEditTarget() + OverridePrim() + attr.Set()",
+    "      Both are valid Data Exchange patterns: use Sdf when fully regenerating",
+    "      a layer; use Usd + SetEditTarget when patching specific attributes.",
+    "",
+    "    SUBLAYER OPINION STRENGTH (exam note):",
+    "      Sublayer opinions ARE the Local (L) strength in LIVRPS. Within L,",
+    "      earlier list position wins. Local beats References, Payloads,",
+    "      Inherits, and Specializes. This is why sublayer timeSamples reliably",
+    "      override reference or payload defaults without any special API calls.",
+    "",
+    "    REGENERATION POLICY:",
+    "      This file is fully rewritten on each stimulate.py invocation.",
+    "      layer.ImportFromString() replaces content atomically, preventing",
+    "      stale opinions from previous runs accumulating in the layer.",
+]
+
+
+def _soma_color_lines(path_parts: list, keyframes: list) -> list:
+    """
+    Build nested 'over' USDA lines for a Soma primvars:displayColor.timeSamples.
+
+    Parameters
+    ----------
+    path_parts : list of str
+        Prim names from World downward, e.g. ['Striatum', 'D1_MSN', 'Soma'].
+    keyframes : list of (frame, r, g, b)
+        Animation keyframes. frame is int, r/g/b are float 0.0-1.0.
+
+    Returns
+    -------
+    list of str
+        USDA lines with 4-space base indent (assumes inside 'over "World"').
+
+    EXAM NOTE:
+        These 'over' specs live in pathway_override.usda (a sublayer).
+        Sublayer opinions are Local (L) in LIVRPS — the strongest possible.
+        They override the referenced geometry's displayColor (which comes
+        from R in LIVRPS) without needing any special API or arc override.
+    """
+    lines = []
+    indent = "    "
+    for part in path_parts:
+        lines.append(f"{indent}over \"{part}\"")
+        lines.append(f"{indent}{{")
+        indent += "    "
+
+    lines.append(f"{indent}color3f[] primvars:displayColor.timeSamples = {{")
+    for frame, r, g, b in keyframes:
+        lines.append(f"{indent}    {frame}: [({r:.4f}, {g:.4f}, {b:.4f})],")
+    lines.append(f"{indent}}}")
+
+    for _ in path_parts:
+        indent = indent[:-4]
+        lines.append(f"{indent}}}")
+
+    return lines
+
+
+def _snc_dopamine_lines(dopamine: float) -> list:
+    """
+    USDA lines for SNc Soma displayColor.timeSamples driven by dopamine level.
+
+    The soma pulses yellow-green with brightness and pulse amplitude scaled
+    by the dopamine value: 0.1 (Parkinsonian) = dim, infrequent; 0.5
+    (healthy) = moderate; 1.0 (reward burst) = very bright, strong pulse.
+
+    This is the visual hook that makes --dopamine actually visible in the scene.
+    The static SNcDopamineLight in basal_ganglia.usda has a fixed intensity
+    schedule; only this layer, regenerated per run, responds to the parameter.
+
+    EXAM NOTE:
+        SNc uses a payload arc (P in LIVRPS). Local sublayer opinions (L)
+        beat payload defaults. pathway_override.usda is L, so its Soma
+        displayColor.timeSamples override the asset's static color.
+        The dopamine value is authored as data in stimulus.usda and as
+        visual animation here — demonstrating the two-layer Data Exchange split.
+    """
+    # dim baseline color — scales with dopamine so Parkinsonian state looks dull
+    dim_r = round(max(0.2, 0.2 + dopamine * 0.55), 3)
+    dim_g = round(max(0.3, 0.3 + dopamine * 0.65), 3)
+    dim_b = 0.02
+
+    # peak pulse color — brighter the higher the dopamine
+    peak_r = round(min(1.0, dim_r + 0.35), 3)
+    peak_g = round(min(1.0, dim_g + 0.30), 3)
+    peak_b = 0.06
+
+    # Three pulses over 240 frames (every 80 frames).
+    # pulse_half_width: dopamine=1.0 → 25 frames; dopamine=0.1 → 8 frames
+    pw = max(6, int(dopamine * 25))
+    keyframes = [
+        (0,       dim_r, dim_g, dim_b),
+        (pw,      peak_r, peak_g, peak_b),
+        (pw * 2,  dim_r, dim_g, dim_b),
+        (80,      dim_r, dim_g, dim_b),
+        (80 + pw, peak_r, peak_g, peak_b),
+        (80 + pw * 2, dim_r, dim_g, dim_b),
+        (160,     dim_r, dim_g, dim_b),
+        (160 + pw, peak_r, peak_g, peak_b),
+        (160 + pw * 2, dim_r, dim_g, dim_b),
+        (240,     dim_r, dim_g, dim_b),
+    ]
+
+    return _soma_color_lines(["SNc", "Soma"], keyframes)
+
+
+def _direct_pathway_lines(values: dict) -> list:
+    """
+    USDA body lines for a Direct (Go) pathway win.
+
+    Visual story:
+      D1 MSN flashes bright blue (firing, suppressing GPi).
+      GPi darkens (being suppressed — the gate opens).
+      Thalamus flashes gold (released! action output propagating to cortex).
+      D2 MSN, GPe, STN stay at resting colors (they lost the competition).
+      SNc Soma pulses with brightness driven by values['dopamine'].
+
+    The Direct-pathway pulse orbs (D1ToGPi, GPiToThalamus) defined in
+    animation.usda are NOT touched here — this layer stays silent on them,
+    so animation.usda wins for those prims and the Direct orbs play normally.
+    """
+    lines = [
+        "    # Direct pathway win: D1 MSN fires, GPi suppressed, Thalamus released.",
+        "    # Soma displayColor.timeSamples flash winning nuclei.",
+        "    # Direct pulse orbs (D1ToGPi, GPiToThalamus) are left to animation.usda.",
+    ]
+
+    # D1 MSN: blue flash — firing hard, suppressing GPi
+    lines += _soma_color_lines(
+        ["Striatum", "D1_MSN", "Soma"],
+        [(55, 0.2, 0.4, 1.0), (65, 0.5, 0.7, 1.0), (80, 0.3, 0.5, 1.0), (90, 0.2, 0.4, 1.0)],
+    )
+
+    # GPi: darkens as D1 MSN GABA suppresses it (the key visual moment)
+    lines += _soma_color_lines(
+        ["GPi", "GPi_Neuron", "Soma"],
+        [(110, 0.75, 0.6, 0.9), (125, 0.2, 0.1, 0.3), (145, 0.03, 0.01, 0.06), (180, 0.75, 0.6, 0.9)],
+    )
+
+    # Thalamus: gold flash — released from GPi suppression, action output!
+    lines += _soma_color_lines(
+        ["Thalamus", "Thalamic_Neuron", "Soma"],
+        [(140, 0.75, 0.6, 0.9), (152, 1.0, 0.92, 0.6), (168, 0.9, 0.8, 0.5), (195, 0.75, 0.6, 0.9)],
+    )
+
+    # SNc Soma: dopamine-driven pulse — brightness reflects --dopamine value
+    lines += _snc_dopamine_lines(values["dopamine"])
+
+    return lines
+
+
+def _indirect_pathway_lines(values: dict) -> list:
+    """
+    USDA body lines for an Indirect (NoGo) pathway win.
+
+    Visual story:
+      CortexToStriatum orb redirected to D2 MSN (4,10,0) instead of D1 (-4,10,0).
+      D2 MSN flashes amber (firing, suppressing GPe).
+      GPe darkens (suppressed by D2 GABA — releases STN from inhibition).
+      STN flashes teal (disinhibited, now driving GPi).
+      GPi stays bright purple (active — movement blocked).
+      Thalamus stays dark throughout (suppressed, no action output).
+      Direct-pathway pulse orbs are zeroed so they don't play.
+      New Indirect orbs (D2ToGPe, STNToGPi) are defined in this layer.
+      SNc Soma pulses with brightness driven by values['dopamine'].
+    """
+    lines = [
+        "    # Indirect pathway win: D2 MSN fires, GPe suppressed, STN active,",
+        "    # GPi stays HIGH (movement blocked), Thalamus stays dark.",
+    ]
+
+    # Zero out the Direct-pathway pulse orbs from animation.usda.
+    # Because this layer is stronger, scale=(0,0,0) timeSamples win.
+    lines += [
+        "",
+        "    # Suppress Direct-pathway pulse orbs and redirect CortexToStriatum.",
+        "    # This layer's timeSamples beat animation.usda's values (stronger sublayer).",
+        "    over \"PulseOrbs\"",
+        "    {",
+        "        # Redirect the corticostriatal orb to D2 MSN (4,10,0) instead of",
+        "        # D1 MSN (-4,10,0). animation.usda hardcodes the D1 destination;",
+        "        # this stronger-layer override changes the end point for NoGo wins.",
+        "        # D2 MSN world pos: Striatum group (0,10,0) + local offset (+4,0,0).",
+        "        over \"CortexToStriatum\"",
+        "        {",
+        "            double3 xformOp:translate.timeSamples = {",
+        "                0:  (0.0, 18.0, 0.0),",
+        "                20: (0.0, 18.0, 0.0),",
+        "                40: (2.0, 14.0, 0.0),",
+        "                60: (4.0, 10.0, 0.0)",
+        "            }",
+        "            color3f[] primvars:displayColor = [(1.0, 0.65, 0.15)]",
+        "        }",
+        "        over \"D1ToGPi\"",
+        "        {",
+        "            double3 xformOp:scale.timeSamples = {",
+        "                0: (0.0, 0.0, 0.0),",
+        "                240: (0.0, 0.0, 0.0)",
+        "            }",
+        "        }",
+        "        over \"GPiToThalamus\"",
+        "        {",
+        "            double3 xformOp:scale.timeSamples = {",
+        "                0: (0.0, 0.0, 0.0),",
+        "                240: (0.0, 0.0, 0.0)",
+        "            }",
+        "        }",
+        "",
+        "        # Indirect-pathway pulse orbs defined as new prims in this layer.",
+        "        # 'def' inside an 'over' container is valid — it adds new children",
+        "        # to the composed PulseOrbs scope without redefining the scope itself.",
+        "        def Sphere \"D2ToGPe\"",
+        "        {",
+        "            double radius = 0.2",
+        "            color3f[] primvars:displayColor = [(1.0, 0.7, 0.2)]",
+        "            double3 xformOp:translate.timeSamples = {",
+        "                80: (4.0, 10.0, 0.0),",
+        "                95: (4.5, 6.0, 0.0),",
+        "                110: (5.0, 2.0, 0.0)",
+        "            }",
+        "            double3 xformOp:scale.timeSamples = {",
+        "                79: (0.0, 0.0, 0.0),",
+        "                80: (1.0, 1.0, 1.0),",
+        "                109: (1.0, 1.0, 1.0),",
+        "                110: (0.0, 0.0, 0.0)",
+        "            }",
+        "            uniform token[] xformOpOrder = [\"xformOp:translate\", \"xformOp:scale\"]",
+        "        }",
+        "",
+        "        def Sphere \"STNToGPi\"",
+        "        {",
+        "            double radius = 0.2",
+        "            color3f[] primvars:displayColor = [(0.0, 0.85, 0.85)]",
+        "            double3 xformOp:translate.timeSamples = {",
+        "                120: (8.0, -4.0, 2.0),",
+        "                140: (1.5, -1.0, 1.0),",
+        "                160: (-5.0, 2.0, 0.0)",
+        "            }",
+        "            double3 xformOp:scale.timeSamples = {",
+        "                119: (0.0, 0.0, 0.0),",
+        "                120: (1.0, 1.0, 1.0),",
+        "                159: (1.0, 1.0, 1.0),",
+        "                160: (0.0, 0.0, 0.0)",
+        "            }",
+        "            uniform token[] xformOpOrder = [\"xformOp:translate\", \"xformOp:scale\"]",
+        "        }",
+        "    }",
+    ]
+
+    # D2 MSN: amber flash — firing, suppressing GPe
+    lines += _soma_color_lines(
+        ["Striatum", "D2_MSN", "Soma"],
+        [(55, 1.0, 0.6, 0.1), (65, 1.0, 0.85, 0.2), (80, 1.0, 0.7, 0.15), (90, 1.0, 0.6, 0.1)],
+    )
+
+    # GPe: darkens as D2 MSN GABA suppresses it (releases STN from inhibition)
+    lines += _soma_color_lines(
+        ["GPe", "GPe_Neuron", "Soma"],
+        [(85, 0.75, 0.6, 0.9), (100, 0.2, 0.1, 0.3), (118, 0.03, 0.01, 0.06), (155, 0.75, 0.6, 0.9)],
+    )
+
+    # STN: teal flash — disinhibited (GPe no longer holds it back)
+    lines += _soma_color_lines(
+        ["STN", "STN_Neuron", "Soma"],
+        [(100, 0.75, 0.6, 0.9), (118, 0.0, 0.85, 0.85), (135, 0.0, 0.65, 0.65), (165, 0.75, 0.6, 0.9)],
+    )
+
+    # GPi: stays bright purple — STN is driving it, movement stays blocked
+    lines += _soma_color_lines(
+        ["GPi", "GPi_Neuron", "Soma"],
+        [(120, 0.6, 0.3, 0.85), (160, 0.6, 0.3, 0.85), (200, 0.75, 0.6, 0.9)],
+    )
+
+    # Thalamus: stays dark throughout — GPi never releases it
+    lines += _soma_color_lines(
+        ["Thalamus", "Thalamic_Neuron", "Soma"],
+        [(0, 0.3, 0.2, 0.4), (240, 0.3, 0.2, 0.4)],
+    )
+
+    # SNc Soma: dopamine-driven pulse — brightness reflects --dopamine value
+    lines += _snc_dopamine_lines(values["dopamine"])
+
+    return lines
+
+
+def _build_pathway_override_usda(values: dict) -> str:
+    """
+    Generate the complete USDA text for pathway_override.usda.
+
+    The output is a fully self-contained sublayer that:
+      1. Contains the certification doc comment (regenerated each run so it
+         survives ImportFromString replacing the layer content).
+      2. Writes pathway-specific Soma displayColor.timeSamples to flash
+         the neurons that belong to the winning pathway.
+      3. For Indirect wins: zeros out Direct pulse orb scales and defines
+         new D2ToGPe / STNToGPi Sphere prims.
+      4. For Direct wins: stays silent on Direct orbs so animation.usda
+         plays them unmodified.
+
+    Parameters
+    ----------
+    values : dict
+        Output from compute_circuit(). Uses 'pathway_winner' to branch.
+
+    Returns
+    -------
+    str
+        Valid USDA text for Sdf.Layer.ImportFromString().
+    """
+    dq = '"""'
+    pathway = values["pathway_winner"]
+
+    # Build the header with the certification doc comment
+    doc_body = "\n".join(_OVERRIDE_DOC_LINES)
+    lines = [
+        "#usda 1.0",
+        "(",
+        f"    doc = {dq}",
+        doc_body,
+        f"    {dq}",
+        '    defaultPrim = "World"',
+        ")",
+        "",
+        'over "World"',
+        "{",
+    ]
+
+    if pathway == "direct":
+        lines += _direct_pathway_lines(values)
+    else:
+        lines += _indirect_pathway_lines(values)
+
+    lines += ["}", ""]
+    return "\n".join(lines)
+
+
+def write_to_pathway_override_layer(values: dict, stage_path: str) -> None:
+    """
+    Regenerate layers/pathway_override.usda with pathway-specific animation.
+
+    Completely replaces the layer content on each run using the Sdf
+    single-layer API (layer.ImportFromString), ensuring no stale opinions
+    remain from previous invocations.
+
+    Parameters
+    ----------
+    values : dict
+        Output from compute_circuit(). 'pathway_winner' selects the branch.
+    stage_path : str
+        Path to basal_ganglia.usda (used to locate pathway_override.usda).
+
+    USD EXAM — Sdf vs Usd API choice:
+        This function uses Sdf.Layer directly rather than Usd.Stage + SetEditTarget.
+        Reason: we are fully regenerating the layer from scratch on every call.
+        ImportFromString() is the correct tool for atomic full-layer replacement —
+        it parses and installs the new content in one operation, with no risk of
+        stale specs from a previous pathway surviving the update.
+
+        Contrast with write_to_stimulus_layer() which patches only specific
+        attribute values using SetEditTarget. That function keeps the layer
+        structure intact and only changes the neural:activationLevel opinions
+        — the right choice when only a few values need updating.
+
+        Rule of thumb:
+          Full layer regeneration  → Sdf.Layer + ImportFromString
+          Targeted attribute patch → Usd.Stage + SetEditTarget + attr.Set
+    """
+    override_path = Path(stage_path).parent / "layers" / "pathway_override.usda"
+    if not override_path.exists():
+        print(
+            f"ERROR: pathway_override.usda not found at {override_path}\n"
+            f"       Create the file (or run from the BG_Circuit directory).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    pathway = values["pathway_winner"]
+    print(f"\n  Generating pathway_override.usda  (pathway_winner = '{pathway}')")
+
+    usda = _build_pathway_override_usda(values)
+
+    # Sdf.Layer.FindOrOpen() checks the USD layer registry first (the layer
+    # may already be cached from write_to_stimulus_layer opening the stage),
+    # then falls back to opening from disk. Either way we get a live SdfLayer.
+    layer = Sdf.Layer.FindOrOpen(str(override_path))
+    if layer is None:
+        print(f"ERROR: Sdf could not open pathway_override.usda", file=sys.stderr)
+        sys.exit(1)
+
+    # ImportFromString() replaces the entire layer content atomically.
+    # This is the Sdf-level equivalent of 'delete and recreate' — no stale
+    # opinions survive. The method returns False if the USDA fails to parse.
+    if not layer.ImportFromString(usda):
+        print(
+            "ERROR: Generated USDA failed to parse.\n"
+            "       Check _build_pathway_override_usda() for syntax errors.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    layer.Save()
+    print(f"  Saved: {layer.realPath}")
+
+
+# ═══════════════════════════════════════════════════════════
 # CLI ENTRY POINT
 # ═══════════════════════════════════════════════════════════
 
@@ -603,7 +1051,12 @@ def main() -> None:
         lod=args.lod,
     )
 
-    print("  Written to stimulus.usda")
+    write_to_pathway_override_layer(
+        values=values,
+        stage_path=str(stage_path),
+    )
+
+    print("  Done — stimulus.usda and pathway_override.usda updated.")
 
 
 if __name__ == "__main__":

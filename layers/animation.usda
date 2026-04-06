@@ -294,10 +294,32 @@ over "World"
 
     over "SNc"
     {
-        over "SNcNeuron"
+        # DEFAULTPRIM RESOLUTION FIX:
+        # snc_neuron.usda declares defaultPrim = "SNcNeuron". When a payload uses
+        # a defaultPrim, that prim's CHILDREN are mapped directly under the
+        # referencing prim — not under an extra name level. The payload arc places:
+        #   SNcNeuron/Soma              → /World/SNc/Soma
+        #   SNcNeuron/DopamineParticles → /World/SNc/DopamineParticles
+        # Writing 'over "SNcNeuron" > over "DopamineParticles"' would target
+        # /World/SNc/SNcNeuron/DopamineParticles — a path that does not exist.
+        # USD silently drops orphaned overs, so the positions.timeSamples would
+        # never apply and the particles would not animate.
+        # Correct path: 'over "DopamineParticles"' directly under 'over "SNc"'.
+        over "DopamineParticles"
         {
-            over "DopamineParticles"
-            {
+                # Vesicle radius increased from 0.05 (sub-pixel, invisible at scene scale)
+                # to 0.25 (visible without looking unrealistically large).
+                # This override lives in animation.usda rather than the asset so the
+                # asset file remains a physically-accurate reference; visual scale is
+                # a presentation concern owned by the animation/override layers.
+                over "Prototypes"
+                {
+                    over "Vesicle"
+                    {
+                        double radius = 0.25
+                    }
+                }
+
                 point3f[] positions.timeSamples = {
                     0: [
                         (0.1, 1.2, 0.1), (-0.1, 1.8, -0.1), (0.15, 2.4, 0.1), (-0.05, 3.0, -0.15),
@@ -328,7 +350,6 @@ over "World"
                         (0.05, 11.8, -0.1), (0.2, 12.4, 0.15), (-0.1, 13.0, -0.2), (0.1, 13.5, 0.1)
                     ]
                 }
-            }
         }
     }
 }

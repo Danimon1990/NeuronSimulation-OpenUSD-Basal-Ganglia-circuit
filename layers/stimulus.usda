@@ -36,13 +36,17 @@
     """
 )
 
-over "World"
+over "World" (
+    variants = {
+        string displayLOD = "circuit_diagram"
+    }
+)
 {
     over "Cortex"
     {
         over "PyramidalNeuron"
         {
-            float neural:activationLevel = 0.6
+            float neural:activationLevel = 0.8
         }
     }
 
@@ -50,14 +54,14 @@ over "World"
     {
         over "D1_MSN"
         {
-            float neural:activationLevel = 0.942
-            float neural:dopamineInfluence = 0.95
+            float neural:activationLevel = 0.848
+            float neural:dopamineInfluence = 0.1
         }
 
         over "D2_MSN"
         {
-            float neural:activationLevel = 0.315
-            float neural:dopamineInfluence = 0.95
+            float neural:activationLevel = 0.76
+            float neural:dopamineInfluence = 0.1
         }
     }
 
@@ -65,7 +69,7 @@ over "World"
     {
         over "GPi_Neuron"
         {
-            float neural:activationLevel = 0.3926
+            float neural:activationLevel = 0.6012
         }
     }
 
@@ -73,7 +77,7 @@ over "World"
     {
         over "GPe_Neuron"
         {
-            float neural:activationLevel = 0.811
+            float neural:activationLevel = 0.544
         }
     }
 
@@ -81,7 +85,7 @@ over "World"
     {
         over "STN_Neuron"
         {
-            float neural:activationLevel = 0.4923
+            float neural:activationLevel = 0.7592
         }
     }
 
@@ -89,13 +93,13 @@ over "World"
     {
         over "Thalamic_Neuron"
         {
-            float neural:activationLevel = 0.5682
+            float neural:activationLevel = 0.3387
         }
     }
 
     over "SNc"
     {
-        float neural:activationLevel = 0.95
+        float neural:activationLevel = 0.1
     }
 }
 

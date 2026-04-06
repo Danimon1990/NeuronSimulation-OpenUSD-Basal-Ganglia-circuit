@@ -76,7 +76,7 @@
         - translate traces arc: radius 35, angle 0 degrees to 15 degrees
           (35*cos(0), 4, 35*sin(0)) to (35*cos(15), 4, 35*sin(15))
           = (35, 4, 0) to (33.81, 4, 9.06) approximately (33.8, 4, 9.1)
-        - rotateXYZ: Y component goes 0 to -15 degrees (camera turns to follow arc)
+        - rotateXYZ: Y component goes 90 to 75 degrees (camera faces -X toward circuit, turns to follow arc)
 
     LIGHTS (UsdLux):
       UsdLux defines the standard light schema for USD.
@@ -94,6 +94,7 @@
     timeCodesPerSecond = 24
 
     subLayers = [
+        @layers/pathway_override.usda@,
         @layers/animation.usda@,
         @layers/connections.usda@,
         @layers/neurons.usda@,
@@ -193,7 +194,7 @@ def Xform "World" (
     #   focalLength 50mm on 36mm film back = approximately 47 degree horizontal FOV
     #   Orbital arc computed as: start (35, 4, 0), end (33.8, 4, 9.1)
     #   This traces a 15-degree arc at radius 35 around world origin.
-    #   rotateXYZ Y: 0 → -15 degrees = camera turns to face center as it orbits.
+    #   rotateXYZ Y: 90 → 75 degrees = camera faces -X toward circuit, turns to follow orbit arc.
     #   xformOpOrder: translate THEN rotateXYZ = translate first, then rotate in place.
 
     def Camera "Camera" (
@@ -210,8 +211,8 @@ def Xform "World" (
             240: (33.8, 4.0, 9.1)
         }
         double3 xformOp:rotateXYZ.timeSamples = {
-            0: (-6.0, 0.0, 0.0),
-            240: (-6.0, -15.0, 0.0)
+            0: (-6.0, 90.0, 0.0),
+            240: (-6.0, 75.0, 0.0)
         }
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
