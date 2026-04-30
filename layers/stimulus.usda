@@ -46,7 +46,7 @@ over "World" (
     {
         over "PyramidalNeuron"
         {
-            float neural:activationLevel = 0.8
+            float neural:activationLevel = 0.75
         }
     }
 
@@ -54,14 +54,14 @@ over "World" (
     {
         over "D1_MSN"
         {
-            float neural:activationLevel = 0.848
-            float neural:dopamineInfluence = 0.1
+            float neural:activationLevel = 0.975
+            float neural:dopamineInfluence = 0.5
         }
 
         over "D2_MSN"
         {
-            float neural:activationLevel = 0.76
-            float neural:dopamineInfluence = 0.1
+            float neural:activationLevel = 0.5625
+            float neural:dopamineInfluence = 0.5
         }
     }
 
@@ -69,7 +69,7 @@ over "World" (
     {
         over "GPi_Neuron"
         {
-            float neural:activationLevel = 0.6012
+            float neural:activationLevel = 0.4481
         }
     }
 
@@ -77,7 +77,7 @@ over "World" (
     {
         over "GPe_Neuron"
         {
-            float neural:activationLevel = 0.544
+            float neural:activationLevel = 0.6625
         }
     }
 
@@ -85,7 +85,7 @@ over "World" (
     {
         over "STN_Neuron"
         {
-            float neural:activationLevel = 0.7592
+            float neural:activationLevel = 0.6562
         }
     }
 
@@ -93,13 +93,13 @@ over "World" (
     {
         over "Thalamic_Neuron"
         {
-            float neural:activationLevel = 0.3387
+            float neural:activationLevel = 0.5071
         }
     }
 
     over "SNc"
     {
-        float neural:activationLevel = 0.1
+        float neural:activationLevel = 0.5
     }
 }
 
