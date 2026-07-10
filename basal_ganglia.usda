@@ -125,6 +125,7 @@
     startTimeCode = 0
     subLayers = [
         @layers/pathway_override.usda@,
+        @layers/dopamine_block.usda@,
         @layers/animation.usda@,
         @layers/connections.usda@,
         @layers/neurons.usda@,
@@ -138,6 +139,9 @@
 def Xform "World" (
     doc = "Scene root. displayLOD variant controls DrawMode on all group prims."
     prepend variantSets = "displayLOD"
+    variants = {
+        string displayLOD = "full_detail"
+    }
 )
 {
     def Camera "Camera" (
@@ -152,7 +156,6 @@ def Xform "World" (
         float horizontalAperture = 36
         custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -2476.784241276381)
         float verticalAperture = 20.25
-        token visibility = "invisible"
         double3 xformOp:rotateXYZ = (-6, 0, 0)
         double3 xformOp:rotateXYZ.timeSamples = {
             0: (-6, 0, 0),
@@ -388,7 +391,7 @@ def "Render" (
                 no_delete = true
             )
             {
-                rel camera = </World/Camera_01>
+                rel camera = </World/Camera>
                 token omni:rtx:ambientOcclusion:denoiserMode = "none"
                 token omni:rtx:background:source:texture:textureMode = "repeatMirrored"
                 token omni:rtx:background:source:type = "domeLight"

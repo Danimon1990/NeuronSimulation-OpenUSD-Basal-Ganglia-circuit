@@ -1,0 +1,455 @@
+#usda 1.0
+(
+    doc = """Neurons Layer — Scene Structure, Composition Arcs, and Neural Metadata
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Composition Arcs — References, Payloads, and Layer Semantics
+    ═══════════════════════════════════════════════════════════
+
+    This layer establishes the STRUCTURE of the scene. It uses three composition arcs:
+
+    1. REFERENCES (prepend references = @path@)
+       - Geometry from asset files is always composed in when the stage opens
+       - The referenced file's defaultPrim becomes the contents of the referencing prim
+       - We use this for all neurons EXCEPT SNc
+
+    2. PAYLOAD (prepend payload = @path@)
+       - Same as reference but DEFERRED: content only loads when you call stage.Load()
+       - SNc is a payload: it's a background element that can be unloaded for clean shots
+       - Prim EXISTS in scene graph even when unloaded, just with no contents
+       - EXAM: payload vs reference = deferred vs immediate loading
+
+    3. METADATA: assetInfo and customData
+       EXAM: Two kinds of prim metadata for Data Exchange:
+
+       assetInfo = { string name = '...' asset identifier = @...@ string version = '...' }
+         - Semantically: information ABOUT this prim as an asset
+         - Used by pipeline tools (asset managers, databases) to identify and version prims
+         - The 'identifier' links back to the source file
+
+       customData = { string key = 'value' bool flag = true }
+         - Arbitrary key-value pairs for your pipeline
+         - Not part of any schema — pure user-defined metadata
+         - Good for: disease associations, research flags, studio-specific data
+         - EXAM: customData does NOT affect rendering, only data exchange
+
+    4. APPLIED API SCHEMA: prepend apiSchemas = ['NeuralStateAPI']
+       - Tells USD this prim has NeuralStateAPI properties
+       - We then author those properties directly on the prim
+       - Strongest opinion (local prim) wins over referenced defaults
+
+    VARIANT SELECTION:
+       variants = { string pathway = 'd1_direct' }
+       This selects a variant on the referenced MSN asset.
+       The variant is evaluated INSIDE the reference arc.
+       LIVRPS = L I V R P S. V (variants) is evaluated BEFORE R (references).
+       So variant selection on THIS prim affects how the referenced content is composed.
+
+    DRAWMODE SETUP (UsdGeomModelAPI):
+       Group prims (Striatum, GPi, etc.) get prepend apiSchemas = ['GeomModelAPI']
+       This is an Applied API schema — it ADDS model:drawMode to any Xform.
+       The displayLOD variantSet in basal_ganglia.usda will switch these values.
+    """
+    defaultPrim = "World"
+    upAxis = "Y"
+)
+
+def Xform "World"
+{
+    # ─── CORTEX ───────────────────────────────────────────────────────────────
+    # Cortical input layer. Single pyramidal neuron as circuit driver.
+    # Positioned at Y=18 — the highest point in the scene, cortex is 'on top'.
+    # The corticostriatal pathway travels downward (Y-) through the scene.
+
+    def Xform "Cortex"
+    {
+        double3 xformOp:translate = (0, 18, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+
+        def Xform "PyramidalNeuron" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/neuron Pyramid.usda@
+            assetInfo = {
+                string name = "Layer V Cortical Pyramidal Neuron"
+                string version = "2.0"
+                asset identifier = @../assets/neuron Pyramid.usda@
+            }
+            customData = {
+                string brodmannArea = "Area 4 (Primary Motor Cortex)"
+                string associatedDisease = "ALS, stroke"
+                bool isInhibitory = false
+            }
+            doc = "Corticostriatal input — sends glutamatergic drive to both D1 and D2 MSNs"
+        )
+        {
+            float neural:firingRate = 8.0
+            token neural:neurotransmitter = "Glutamate"
+            token neural:pathway = "None"
+            float neural:activationLevel = 0.0
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/neuron Pyramid.usda@
+            string neural:anatomicalName = "Layer V Cortical Pyramidal Neuron"
+            string neural:clinicalRelevance = "Provides corticostriatal drive. Damage in ALS/stroke disrupts motor initiation."
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+        }
+    }
+
+    # ─── STRIATUM ──────────────────────────────────────────────────────────────
+    # The input nucleus of the basal ganglia. Contains D1 and D2 MSNs.
+    # Group prim has GeomModelAPI for DrawMode switching via displayLOD variant.
+    # D1_MSN selects "d1_direct" variant → blue color
+    # D2_MSN selects "d2_indirect" variant → amber color
+    # Both share the same msn_neuron.usda geometry — reference reuse pattern.
+
+    def Xform "Striatum" (
+        prepend apiSchemas = ["GeomModelAPI"]
+        doc = "Striatum group — contains D1 and D2 MSNs. DrawMode controlled by displayLOD variant."
+    )
+    {
+        double3 xformOp:translate = (0, 10, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+
+        # ── D1 MSN (Direct / Go pathway) ────────────────────────────────────
+        # variant selection: pathway = "d1_direct" → blue soma color
+        # Translated -4 on X to separate from D2 MSN spatially
+
+        def Xform "D1_MSN" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/MSN_hq.usda@
+            variants = { string pathway = "d1_direct" }
+            assetInfo = {
+                string name = "D1 Medium Spiny Neuron"
+                string version = "2.0"
+                asset identifier = @../assets/MSN_hq.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - subcortical"
+                string associatedDisease = "Parkinson's disease (loss of D1 drive), addiction (hyperactivation)"
+                bool isInhibitory = true
+            }
+            doc = "Direct pathway MSN — when activated suppresses GPi, releasing thalamic action output"
+        )
+        {
+            double3 xformOp:translate = (-4, 0, 0)
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+            float neural:firingRate = 2.5
+            token neural:neurotransmitter = "GABA"
+            token neural:pathway = "Direct"
+            float neural:activationLevel = 0.0
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/MSN_hq.usda@
+            string neural:anatomicalName = "Caudate Putamen D1 Medium Spiny Neuron"
+            string neural:clinicalRelevance = "Loss of D1 MSN activation causes Parkinsonian akinesia. Hyperactivation underlies habit formation and addiction."
+        }
+
+        # ── D2 MSN (Indirect / NoGo pathway) ────────────────────────────────
+        # variant selection: pathway = "d2_indirect" → amber soma color
+        # Translated +4 on X to separate from D1 MSN spatially
+        # Same geometry asset, different variant, different neural metadata
+
+        def Xform "D2_MSN" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/MSN_hq.usda@
+            variants = { string pathway = "d2_indirect" }
+            assetInfo = {
+                string name = "D2 Medium Spiny Neuron"
+                string version = "2.0"
+                asset identifier = @../assets/MSN_hq.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - subcortical"
+                string associatedDisease = "OCD (hyperactive indirect pathway), Parkinson's (overactive NoGo)"
+                bool isInhibitory = true
+            }
+            doc = "Indirect pathway MSN — when activated suppresses GPe, disinhibiting STN, strengthening GPi suppression"
+        )
+        {
+            double3 xformOp:translate = (4, 0, 0)
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+            float neural:firingRate = 2.5
+            token neural:neurotransmitter = "GABA"
+            token neural:pathway = "Indirect"
+            float neural:activationLevel = 0.0
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/MSN_hq.usda@
+            string neural:anatomicalName = "Caudate Putamen D2 Medium Spiny Neuron"
+            string neural:clinicalRelevance = "Overactivation causes OCD-like action suppression. Loss contributes to hyperkinetic disorders."
+        }
+    }
+
+    # ─── GPi (Globus Pallidus Internus) ────────────────────────────────────────
+    # The OUTPUT nucleus of the basal ganglia for movement.
+    # Fires tonically at ~70 Hz, SUPPRESSING the thalamus.
+    # When D1 MSNs activate (Go pathway), GPi is silenced → thalamus fires → movement.
+    # Deep Brain Stimulation (DBS) electrodes are placed here in Parkinson's disease.
+
+    def Xform "GPi" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        double3 xformOp:translate = (-5, 2, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+
+        def Xform "GPi_Neuron" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/neuron_generic.usda@
+            assetInfo = {
+                string name = "Globus Pallidus Internus"
+                string version = "2.0"
+                asset identifier = @../assets/neuron_generic.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - subcortical basal ganglia output"
+                string associatedDisease = "Dystonia (GPi overactivity). DBS target for Parkinson's."
+                bool isInhibitory = true
+            }
+            doc = "GPi — tonically active inhibitor of thalamus. Suppressed by D1 MSN (Go). Deep Brain Stimulation target."
+        )
+        {
+            float neural:firingRate = 70.0
+            token neural:neurotransmitter = "GABA"
+            token neural:pathway = "Indirect"
+            float neural:activationLevel = 0.8
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/neuron_generic.usda@
+            string neural:anatomicalName = "Globus Pallidus Internus"
+            string neural:clinicalRelevance = "Tonically fires at 70 Hz suppressing thalamus. D1 MSN activation silences it, enabling movement. DBS electrode target in Parkinson's."
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+        }
+    }
+
+    # ─── GPe (Globus Pallidus Externus) ────────────────────────────────────────
+    # Relay in the indirect pathway. Receives input from D2 MSNs.
+    # GPe inhibits STN. When D2 MSNs suppress GPe → STN becomes active → drives GPi.
+    # Net indirect pathway: Cortex → D2 MSN → GPe(suppressed) → STN(active) → GPi(active) → Thalamus(suppressed)
+
+    def Xform "GPe" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        double3 xformOp:translate = (5, 2, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+
+        def Xform "GPe_Neuron" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/neuron_generic.usda@
+            assetInfo = {
+                string name = "Globus Pallidus Externus"
+                string version = "2.0"
+                asset identifier = @../assets/neuron_generic.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - subcortical indirect pathway relay"
+                string associatedDisease = "Hyperkinetic disorders when GPe underactive"
+                bool isInhibitory = true
+            }
+            doc = "GPe — indirect pathway relay. D2 MSN suppresses GPe, releasing STN from inhibition."
+        )
+        {
+            float neural:firingRate = 55.0
+            token neural:neurotransmitter = "GABA"
+            token neural:pathway = "Indirect"
+            float neural:activationLevel = 0.5
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/neuron_generic.usda@
+            string neural:anatomicalName = "Globus Pallidus Externus"
+            string neural:clinicalRelevance = "Relay in indirect pathway. GPe inhibits STN; when GPe is suppressed by D2 MSN, STN activates GPi."
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+        }
+    }
+
+    # ─── STN (Subthalamic Nucleus) ──────────────────────────────────────────────
+    # The ONLY excitatory (glutamatergic) nucleus in the basal ganglia.
+    # Roles:
+    #   1. Indirect pathway: GPe → STN(disinhibited) → GPi(excited) → Thalamus suppressed
+    #   2. Hyperdirect pathway: Cortex → STN directly (bypassing striatum) = rapid brake
+    # STN lesions cause HEMIBALLISMUS — violent involuntary flinging movements.
+    # STN DBS is now preferred over GPi DBS in many Parkinson's cases.
+
+    def Xform "STN" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        double3 xformOp:translate = (8, -4, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+
+        def Xform "STN_Neuron" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/neuron_generic.usda@
+            assetInfo = {
+                string name = "Subthalamic Nucleus"
+                string version = "2.0"
+                asset identifier = @../assets/neuron_generic.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - diencephalon"
+                string associatedDisease = "Hemiballismus (STN lesion). Also a DBS target."
+                bool isInhibitory = false
+            }
+            doc = "STN — ONLY excitatory nucleus in basal ganglia. Provides hyperdirect brake and amplifies GPi suppression in indirect pathway."
+        )
+        {
+            float neural:firingRate = 25.0
+            token neural:neurotransmitter = "Glutamate"
+            token neural:pathway = "Hyperdirect"
+            float neural:activationLevel = 0.3
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/neuron_generic.usda@
+            string neural:anatomicalName = "Subthalamic Nucleus"
+            string neural:clinicalRelevance = "The only excitatory nucleus in the circuit. STN lesions cause hemiballismus. DBS target alternative to GPi for Parkinson's."
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+        }
+    }
+
+    # ─── THALAMUS ────────────────────────────────────────────────────────────
+    # The basal ganglia output target. Motor relay nucleus (VA/VL).
+    # Under constant GPi suppression at rest → no movement.
+    # When Go pathway wins: GPi silenced → Thalamus fires → Cortex activated → Movement.
+    # This is the FINAL STEP of action selection: basal ganglia votes,
+    # thalamus either relays or blocks the motor command.
+
+    def Xform "Thalamus" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        double3 xformOp:translate = (0, -10, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+
+        def Xform "Thalamic_Neuron" (
+            prepend apiSchemas = ["NeuralStateAPI"]
+            prepend references = @../assets/another_neuron.usda@
+            assetInfo = {
+                string name = "Ventral Anterior / Ventral Lateral Thalamus"
+                string version = "1.0"
+                asset identifier = @../assets/another_neuron.usda@
+            }
+            customData = {
+                string brodmannArea = "N/A - thalamus VA/VL nuclei"
+                string associatedDisease = "Thalamic relay dysfunction in Parkinson's tremor"
+                bool isInhibitory = false
+            }
+            doc = "Thalamic relay — fires when GPi is suppressed (Go wins). Sends action command to cortex, closing the loop."
+        )
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+            float neural:firingRate = 15.0
+            token neural:neurotransmitter = "Glutamate"
+            token neural:pathway = "None"
+            float neural:activationLevel = 0.0
+            float neural:dopamineInfluence = 0.0
+            asset neural:geometrySource = @../assets/another_neuron.usda@
+            string neural:anatomicalName = "Ventral Anterior / Ventral Lateral Thalamus"
+            string neural:clinicalRelevance = "Action output relay. Suppressed by tonically firing GPi. When GPi silenced by D1 MSN, thalamus fires and movement occurs."
+        }
+    }
+
+    # ─── SNc (Substantia Nigra pars compacta) — PAYLOAD ─────────────────────
+    # EXAM: This prim uses `prepend payload` instead of `prepend references`.
+    # The geometry from snc_neuron.usda is DEFERRED — it loads only on stage.Load('/World/SNc').
+    # The prim exists in the scene graph with all metadata intact (assetInfo, customData,
+    # NeuralStateAPI properties) but has NO geometry until explicitly loaded.
+    #
+    # Why payload? SNc is a background/modulatory element. For presentations focusing
+    # on the core Cortex→Striatum→GPi→Thalamus circuit, SNc can remain unloaded.
+    # For the full dopamine modulation demo, load it to show the nigrostriatal pathway.
+    #
+    # PAYLOAD ARC POSITION IN LIVRPS:
+    #   L = Local (sublayer opinions) → strongest
+    #   I = Inherits
+    #   V = VariantSets
+    #   R = References
+    #   P = Payloads ← SNc geometry comes from here (deferred)
+    #   S = Specializes
+    # Local opinions in this file (neural:firingRate, etc.) OVERRIDE payload defaults.
+
+    def Xform "SNc" (
+        prepend apiSchemas = ["NeuralStateAPI", "GeomModelAPI"]
+        prepend payload = @../assets/neuron Pyramid.usda@
+        assetInfo = {
+            string name = "Substantia Nigra pars compacta"
+            string version = "2.0"
+            asset identifier = @../assets/neuron Pyramid.usda@
+        }
+        customData = {
+            string brodmannArea = "N/A - midbrain"
+            string associatedDisease = "Parkinson's disease (SNc neuron loss = dopamine deficit)"
+            bool isInhibitory = false
+        }
+        doc = "SNc dopamine neurons — loaded as PAYLOAD. Pyramidal neuron geometry used for visual quality. DopamineParticles authored locally, not from payload."
+    )
+    {
+        double3 xformOp:translate = (0, 6, -10)
+        float3 xformOp:rotateXYZ = (-90, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+        uniform token model:drawMode = "default"
+        uniform bool model:applyDrawMode = true
+        float neural:firingRate = 4.0
+        token neural:neurotransmitter = "Dopamine"
+        token neural:pathway = "Modulatory"
+        float neural:activationLevel = 0.5
+        float neural:dopamineInfluence = 1.0
+        asset neural:geometrySource = @../assets/neuron Pyramid.usda@
+        string neural:anatomicalName = "Substantia Nigra pars compacta"
+        string neural:clinicalRelevance = "90% SNc neuron loss causes Parkinson's disease. Dopamine biases striatum toward D1 (Go). Critical for reward learning."
+
+        # DopamineParticles defined locally (not from payload) so they exist
+        # regardless of which geometry asset SNc uses.
+        #
+        # COORDINATE SYSTEM (SNc has xformOp:rotateXYZ = (-90, 0, 0)):
+        #   R_x(-90°) maps local +Y → world -Z, local -Y → world +Z, local +Z → world +Y
+        #   SNc is at world (0, 6, -10). Striatum (D1/D2) is at world (±4, 10, 0).
+        #   Direction SNc→Striatum in world space: (0, +4, +10).
+        #   In SNc local space: (0, -10, +4).
+        #   So particles traveling local -Y and +Z travel TOWARD the striatum in world space.
+        #   Particle i=19 at local (0.08, -10, 4) → world (0.08, 10, 0) = D1 MSN position. ✓
+        def PointInstancer "DopamineParticles"
+        {
+            rel prototypes = </World/SNc/DopamineParticles/Prototypes/Vesicle>
+            int[] protoIndices = [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
+            point3f[] positions = [
+                (0.050, 0.400, 0.020), (-0.080, 0.350, -0.040), (0.100, 0.450, 0.050), (-0.060, 0.420, -0.030),
+                (0.110, 0.380, -0.050), (-0.100, 0.460, 0.040), (0.070, 0.330, -0.060), (-0.090, 0.410, 0.070),
+                (0.120, 0.440, -0.020), (-0.050, 0.370, 0.080), (0.080, 0.480, -0.070), (-0.110, 0.390, 0.030),
+                (0.060, 0.360, 0.060), (-0.070, 0.430, -0.050), (0.090, 0.470, 0.010), (-0.120, 0.340, -0.080),
+                (0.040, 0.400, 0.090), (-0.030, 0.450, -0.010), (0.100, 0.320, 0.050), (-0.080, 0.490, -0.040)
+            ]
+            quath[] orientations = [
+                (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0),
+                (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0),
+                (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0),
+                (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0)
+            ]
+            def Scope "Prototypes"
+            {
+                def Sphere "Vesicle" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    double radius = 0.08
+                    rel material:binding = </Materials/DopamineMaterial>
+                    color3f[] primvars:displayColor = [(0.8, 1.0, 0.2)]
+                }
+            }
+        }
+    }
+}

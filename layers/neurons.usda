@@ -323,11 +323,11 @@ def Xform "World"
 
         def Xform "Thalamic_Neuron" (
             prepend apiSchemas = ["NeuralStateAPI"]
-            prepend references = @../assets/generic_neuron.usda@
+            prepend references = @../assets/another_neuron.usda@
             assetInfo = {
                 string name = "Ventral Anterior / Ventral Lateral Thalamus"
                 string version = "1.0"
-                asset identifier = @../assets/generic_neuron.usda@
+                asset identifier = @../assets/another_neuron.usda@
             }
             customData = {
                 string brodmannArea = "N/A - thalamus VA/VL nuclei"
@@ -337,12 +337,14 @@ def Xform "World"
             doc = "Thalamic relay — fires when GPi is suppressed (Go wins). Sends action command to cortex, closing the loop."
         )
         {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
             float neural:firingRate = 15.0
             token neural:neurotransmitter = "Glutamate"
             token neural:pathway = "None"
             float neural:activationLevel = 0.0
             float neural:dopamineInfluence = 0.0
-            asset neural:geometrySource = @../assets/generic_neuron.usda@
+            asset neural:geometrySource = @../assets/another_neuron.usda@
             string neural:anatomicalName = "Ventral Anterior / Ventral Lateral Thalamus"
             string neural:clinicalRelevance = "Action output relay. Suppressed by tonically firing GPi. When GPi silenced by D1 MSN, thalamus fires and movement occurs."
         }

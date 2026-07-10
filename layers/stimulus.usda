@@ -36,11 +36,7 @@
     """
 )
 
-over "World" (
-    variants = {
-        string displayLOD = "circuit_diagram"
-    }
-)
+over "World"
 {
     over "Cortex"
     {

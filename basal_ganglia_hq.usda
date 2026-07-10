@@ -1,0 +1,1336 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary MovieCaptureSettings = {
+            double animation_fps = 24
+            int bad_frame_size_threshold = 0
+            int batch_count = 1
+            string camera_name = "/World/Cam_DopamineSide"
+            bool capture_application = 0
+            int capture_every_nth_frames = 20
+            bool capture_every_nth_frames_checked = 0
+            int capture_frame_end = 240
+            int capture_frame_start = 0
+            string capture_name = "lights"
+            string capture_range = "Custom Range - Frames"
+            double capture_time_end = 10
+            double capture_time_start = 0
+            int early_quit_time_limit = 0
+            string exr_compression_method = "zips"
+            double fps = 24
+            bool generate_shader_cache = 0
+            bool hdr_for_exr_checked = 1
+            bool hdr_for_exr_visible = 0
+            int iray_pathtrace_spp = 1
+            int iray_subframes_per_frame = 32
+            int max_bad_frame_threshold = 3
+            string movie_type = "Sequence"
+            int mp4_encoding_bitrate = 16777216
+            int mp4_encoding_iframe_interval = 60
+            string mp4_encoding_preset = "PRESET_P3"
+            string mp4_encoding_profile = "H264_PROFILE_HIGH"
+            string mp4_encoding_rc_mode = "RC_VBR"
+            int mp4_encoding_rc_target_quality = 0
+            string mp4_encoding_tuning_info = "TUNING_HIGH_QUALITY"
+            bool mp4_encoding_video_full_range_flag = 0
+            string output_format = ".png"
+            string output_path = "/home/daniel/Documents/BG_Circuit/Sequences"
+            bool overwrite_existing_frame_checked = 0
+            bool pathtrace_mb_checked = 1
+            double pathtrace_mb_frame_shutter_close = 0.5
+            double pathtrace_mb_frame_shutter_open = 0
+            int pathtrace_mb_subframes = 64
+            int pathtrace_spp_per_iteration_mgpu = 1
+            int pathtrace_spp_per_subframe = 1
+            string queue_instance = "localhost Queue"
+            int realtime_settle_latency = 0
+            int realtime_wait_for_render_resolve = 0
+            string render_preset = "RaytracedLighting"
+            bool render_style = 1
+            bool renumber_negtive_frames_checked = 0
+            int resolution_aspect_ratio_selected = 0
+            string resolution_aspect_ratios = '["16:9", "4:3"]'
+            int resolution_height = 1080
+            string resolution_type = "Custom"
+            bool resolution_w_h_linked = 1
+            int resolution_width = 1920
+            int run_n_frames_before_start = 20
+            bool run_n_frames_before_start_checked = 0
+            bool save_alpha_checked = 0
+            bool skip_upload_to_s3 = 0
+            int start_delay_seconds = 10
+            double sunstudy_end = 18
+            int sunstudy_movie_minutes = 1
+            int sunstudy_movie_seconds = 1
+            double sunstudy_start = 6
+            string task_comment = ""
+            int task_priority = 65535
+            string task_type = "create-render"
+            double texture_streaming_memory_budget = 0.6000000238418579
+            bool upload_to_s3 = 0
+        }
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (0, 0, 500)
+                double radius = 5
+            }
+            dictionary Perspective = {
+                double3 position = (-22.920088252483215, 24.307849994248095, -19.004196059282087)
+                double3 target = (78.49485250409978, -38.12892128552882, 64.38996898620894)
+            }
+            dictionary Right = {
+                double3 position = (-500, 0, 0)
+                double radius = 5
+            }
+            dictionary Top = {
+                double3 position = (0, 500, 0)
+                double radius = 83.20123291015625
+            }
+            string boundCamera = "/OmniverseKit_Persp"
+        }
+        dictionary omni_layer = {
+            string authoring_layer = "./basal_ganglia_hq.usda"
+        }
+        dictionary renderSettings = {
+            double "rtx:directLighting:sampledLighting:maxRayUnexposedIntensity" = 6399.9990234375
+            int "rtx:externalFrameCounter" = 240
+            double "rtx:indirectDiffuse:maxRayUnexposedIntensity" = 6399.9990234375
+            double "rtx:pathtracing:fireflyFilter:maxPerEmissiveUnexposedIntensity" = 3199.99951171875
+            double "rtx:pathtracing:fireflyFilter:maxUnexposedIntensityPerSample" = 3199.99951171875
+            double "rtx:pathtracing:fireflyFilter:maxUnexposedIntensityPerSampleDiffuse" = 3199.99951171875
+            double "rtx:raytracing:inscattering:maxRTSampleUnexposedIntensity" = 204799.96875
+            double "rtx:translucency:maxRayUnexposedIntensity" = 19199.998046875
+        }
+    }
+    defaultPrim = "World"
+    doc = """Basal Ganglia Action Selection Circuit
+    Root stage — OpenUSD Portfolio Scene
+
+    ═══════════════════════════════════════════════════════════
+    EXAM TOPIC: Composition Arcs — The Full Picture
+    ═══════════════════════════════════════════════════════════
+
+    SUBLAYER STACK AND COMPOSITION ORDER:
+
+    This stage uses sublayers to build up the scene from independent layers.
+    Sublayers are the SIMPLEST composition arc — they merge layers as if written
+    in one file, with earlier entries (top of list) having STRONGER opinions.
+
+    Our stack (strongest to weakest sublayer):
+      1. animation.usda    — pulse keyframes, emissive flashes (STRONGEST sublayer)
+      2. connections.usda  — axon pathway curves
+      3. neurons.usda      — neuron placement, schemas, metadata
+      4. shaders.usda      — material definitions
+      5. stimulus.usda     — Python-computed activation data (WEAKEST sublayer)
+
+    WHY stimulus.usda IS THE WEAKEST SUBLAYER:
+      stimulus.usda is written by stimulate.py with computed activation values.
+      Making it the weakest means:
+        - Artists can override any stimulus value in a stronger layer
+        - The local stage (this file) is always STRONGEST of all
+        - It creates a clean data pipeline: script writes, artists can correct
+      The Python script authors 'over' prims with neural:activationLevel values.
+      Since neurons.usda defines static defaults, stimulus.usda can provide
+      dynamic values that override them at the weakest opinion level.
+      The local stage overrides EVERYTHING — ultimate artist control.
+
+    LIVRPS COMPOSITION ORDER (per USD specification):
+      L = Local opinions        — authored in THIS file and all sublayers (as a stack)
+      I = Inherits arcs         — from `inherits` composition arc
+      V = VariantSets           — variant selections on prims
+      R = References            — from `references` composition arc
+      P = Payloads              — from `payload` composition arc (deferred)
+      S = Specializes           — from `specializes` composition arc (weakest)
+
+    Sublayer opinions are part of 'L' (Local) — the entire sublayer stack collapses
+    into the Local opinion strength before comparing against References/Payloads.
+    This is why sublayer overrides beat referenced defaults.
+
+    PAYLOAD vs REFERENCE (SNc is a payload):
+      References: composed immediately when stage opens. Required geometry.
+      Payloads:   prim exists in scene graph but content is DEFERRED.
+                  Load with: stage.Load('/World/SNc')
+                  Unload with: stage.Unload('/World/SNc')
+      Use payloads for: large optional assets, LOD management, streaming scenes.
+      SNc sits in the background. For overhead views of the main circuit,
+      unloading SNc removes its geometry without deleting it from the scene.
+
+    DRAWMODE (UsdGeomModelAPI):
+      UsdGeomModelAPI is an Applied API schema — it adds model:drawMode to any prim.
+      NOT an IsA schema. The group Xforms are still Xforms, just with DrawMode data.
+
+      model:drawMode values:
+        'default' — render full geometry (all neurons visible)
+        'bounds'  — show only bounding box (circuit diagram view, fast rendering)
+        'cards'   — show textured quad sprites (billboard approximation)
+
+      vs visibility='invisible': DrawMode replaces with simpler representation.
+        visibility=invisible: prim renders nothing at all.
+        model:drawMode='bounds': prim renders as a box.
+
+      Renderer support: usdview/Storm YES, Omniverse YES, Maya/Houdini partial.
+      When a renderer doesn't support DrawMode it falls back to 'default'.
+      Pipeline use: shots that only need circuit topology use 'bounds' for fast preview.
+
+    CAMERA (UsdGeomCamera):
+      focalLength: distance from lens to film plane in mm (scene units / 10)
+      horizontalAperture: film back width in mm (36mm = full-frame sensor)
+      Orbit animation: 15 degrees over 240 frames. We decompose to:
+        - translate traces arc: radius 70, angle 90 degrees to 105 degrees
+          (70*cos(90), 4, 70*sin(90)) to (70*cos(105), 4, 70*sin(105))
+          = (0, 4, 70) to (-18.1, 4, 67.6)
+        - rotateXYZ: Y component goes 0 to -15 degrees (camera starts facing front -Z, sweeps left to follow arc)
+
+    LIGHTS (UsdLux):
+      UsdLux defines the standard light schema for USD.
+      Lights are discovered by renderers via the UsdLuxListAPI or by traversal.
+      inputs:intensity / inputs:color use the 'inputs:' namespace (USD 20.11+).
+      DomeLight: infinite environment light from all directions (like an HDRI).
+      SphereLight: point light emitting from a sphere surface.
+    """
+    endTimeCode = 240
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    subLayers = [
+        @layers/pathway_override.usda@,
+        @layers/dopamine_block.usda@,
+        @layers/animation.usda@,
+        @layers/connections.usda@,
+        @layers/neurons_hq.usda@,
+        @layers/shaders.usda@,
+        @layers/stimulus.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
+def Xform "World" (
+    doc = "Scene root. displayLOD variant controls DrawMode on all group prims."
+    variants = {
+        string displayLOD = "full_detail"
+    }
+    prepend variantSets = "displayLOD"
+)
+{
+    def Camera "Camera" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+        doc = "Main circuit camera — slow orbital arc over 240 frames"
+    )
+    {
+        float2 clippingRange = (0.1, 10000)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 27.2
+        float focusDistance = 0
+        float fStop = 0
+        float horizontalAperture = 36
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -7963.769141775439)
+        float verticalAperture = 20.25
+        token visibility = "invisible"
+        double3 xformOp:rotateXYZ = (-6, -9.5625, 1.2095142384055554e-15)
+        double3 xformOp:rotateXYZ.timeSamples = {
+            0: (-6, 0, 0),
+            240: (-6, -15, 0),
+        }
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (465.7900087100394, -298.0000840008932, -2764.9437512414693)
+        double3 xformOp:translate.timeSamples = {
+            0: (0, 4, 70),
+            240: (-18.1, 4, 67.6),
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+
+    def Scope "Lights" (
+        doc = "UsdLux lights. DomeLight = ambient. SphereLights = fills."
+    )
+    {
+        token visibility = "invisible"
+
+        def DomeLight "AmbientDome" (
+            doc = "Near-black ambient. We rely on emissive materials for primary illumination."
+        )
+        {
+            color3f inputs:color = (0.05, 0.05, 0.12)
+            float inputs:intensity = 0.05
+            token visibility = "invisible"
+        }
+
+        def SphereLight "CortexFill"
+        {
+            color3f inputs:color = (0.5, 0.7, 1)
+            float inputs:intensity = 3
+            float inputs:radius = 1
+            token visibility = "invisible"
+            double3 xformOp:translate = (0, 22, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def SphereLight "GPiFill"
+        {
+            color3f inputs:color = (0.4, 0.2, 0.6)
+            float inputs:intensity = 1.5
+            float inputs:radius = 1
+            token visibility = "invisible"
+            double3 xformOp:translate = (-5, -2, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def SphereLight "SNcDopamineLight"
+        {
+            color3f inputs:color = (0.6, 1, 0.1)
+            float inputs:intensity.timeSamples = {
+                0: 1.5,
+                40: 2.8,
+                80: 1.5,
+                120: 2.8,
+                160: 1.5,
+                200: 2.8,
+                240: 1.5,
+            }
+            float inputs:radius = 0.8
+            token visibility = "invisible"
+            double3 xformOp:translate = (0, 6, -10)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def DistantLight "DistantLight" (
+        prepend apiSchemas = ["ShapingAPI"]
+    )
+    {
+        float inputs:angle = 1
+        float inputs:intensity = 40
+        float inputs:shaping:cone:angle = 180
+        float inputs:shaping:cone:softness
+        float inputs:shaping:focus
+        color3f inputs:shaping:focusTint
+        asset inputs:shaping:ies:file
+        quatd xformOp:orient = (-0.9238795325112867, 0.3826834323650899, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Camera "global" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+    )
+    {
+        float2 clippingRange = (1, 10000000)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 18.147562
+        float focusDistance = 400
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -436.4769827530872)
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (19.267534255981445, 153.93588256835938, 9.573773384094238)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (21.691171791346108, 18.143039642936397, -30.367930878738033)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Camera_01" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+    )
+    {
+        float2 clippingRange = (1, 10000000)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 18.147562
+        float focusDistance = 400
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -356.5544854669352)
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (1.919671893119812, 113.51130676269531, 4.403043746948242)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (53.11386287971349, 8.37816464108484, -24.345323963061702)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Cam_CortexHero" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+        doc = "Hero close-up on cortex. Use frames 0-30. Cortex fires pink-red. focalLength 50 = normal lens, no distortion."
+    )
+    {
+        float2 clippingRange = (0.1, 500)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 35
+        float focusDistance = 73
+        float focusDistance.timeSamples = {
+            0: 73,
+            240: 38,
+        }
+        float horizontalAperture = 36
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -73)
+        float verticalAperture = 20.25
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (-5.76, -63.23, 0)
+        double3 xformOp:rotateYXZ.timeSamples = {
+            0: (-5.76, -63.23, 0),
+            240: (-5.76, -32.33, 0),
+        }
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-3.325186106710957, 77.7, 33)
+        double3 xformOp:translate.timeSamples = {
+            0: (-3.325186106710957, 77.7, 33),
+            240: (-3.325186106710957, 33, 33),
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Cam_GPiSuppression" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+        doc = "Medium shot on GPi going dark. Use frames 110-150. GPi dims purple→black = gate opens. Dramatic."
+    )
+    {
+        float2 clippingRange = (0.1, 500)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 35
+        float focusDistance = 16
+        float horizontalAperture = 36
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -50.20259744650613)
+        float verticalAperture = 20.25
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (-12, -18, -8.941927771421044e-15)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-12.569183862735578, 25.131563206095464, 45.81777515155225)
+        double3 xformOp:translate.timeSamples = {
+            0: (-7.675247587884362, 22, 31.084928602420668),
+            240: (-7.675247587884362, -2, 31.084928602420668),
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Cam_ThalamicRelease" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+        doc = "Hero shot on thalamus gold flash. Use frames 135-200. The climax: action released. HDR gold bloom."
+    )
+    {
+        float2 clippingRange = (0.1, 500)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 35
+        float focusDistance = 17
+        float horizontalAperture = 36
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -138.93004156805216)
+        float verticalAperture = 20.25
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (-13.61791706085205, 45.94110870361328, 15.202690124511719)
+        double3 xformOp:rotateYXZ.timeSamples = {
+            0: (-3.9000000581145287, 69.69978332519531, 22.711118698120117),
+            240: (-32, 1, 1),
+        }
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (38.97808785954456, 25.35026094271338, 49.534327302279436)
+        double3 xformOp:translate.timeSamples = {
+            0: (64, 33, 22),
+            60: (52.23166391846464, 33, 37.16342073931226),
+            180: (16.512721308815646, 33, 49.06973494252859),
+            240: (-2, 33, 44),
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Cam_DopamineSide" (
+        prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+        doc = "Side view of SNc. Use full 240 frames. Yellow-green dopamine particles rise continuously."
+    )
+    {
+        float2 clippingRange = (0.1, 500)
+        float exposure:fStop = 5
+        float exposure:responsivity = 1.1026709
+        float exposure:time = 0.02
+        float focalLength = 28
+        float focusDistance = 18
+        float horizontalAperture = 36
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -92.62848968914554)
+        float verticalAperture = 20.25
+        token visibility = "invisible"
+        double3 xformOp:rotateYXZ = (90, -0, 6.300000190734863)
+        double3 xformOp:rotateYXZ.timeSamples = {
+            0: (90, 0, 0),
+            120: (90, 4, 0),
+            240: (90, 7, 0),
+        }
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (9.511757358725452, -72.67017217792743, 18.733333333333338)
+        double3 xformOp:translate.timeSamples = {
+            0: (18, -49.68, -10),
+            120: (13, -58, 8),
+            240: (7, -64, 22),
+        }
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    over "GPi"
+    {
+        over "GPi_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/GPiMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-87.718, 2.1650624, 4.795331)
+            float3 xformOp:scale = (0.71582896, 1, 1.2141265)
+            double3 xformOp:translate = (0.21715739399252065, 0.7565165272217635, -0.5363055626650921)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Sphere"
+            {
+                over "Sphere"
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+            }
+        }
+    }
+
+    over "Striatum"
+    {
+        over "D1_MSN" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/IndirectPathwayMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90.468704, 0.44837514, -3.6664994)
+            float3 xformOp:scale = (0.42124924, 0.8245595, 0.68259907)
+            double3 xformOp:translate = (-4.1194405792504964, 1.1989406160411917, -2.1316282072802988e-13)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Cylinder"
+            {
+                over "Cylinder" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/DirectPathwayMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            over "env_light"
+            {
+                token visibility = "invisible"
+            }
+        }
+
+        over "D2_MSN" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/DirectPathwayMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-89.51121, -1.3938155, 13.071337)
+            float3 xformOp:scale = (0.40792808, 0.76127625, 0.7300906)
+            double3 xformOp:translate = (4.004693103028403, 0.9039264543647345, -2.027559582568862e-15)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Cylinder"
+            {
+                over "Cylinder" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/IndirectPathwayMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            over "env_light"
+            {
+                color3f inputs:color = (0.1871755, 0.06576298, 1.9599999)
+                float inputs:colorTemperature = 6500
+                float inputs:exposure = -0.5
+                float inputs:intensity = 0.2
+                token visibility = "inherited"
+            }
+        }
+    }
+
+    over "GPe"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.77004117, 0.77004117, 1)
+        double3 xformOp:translate = (5, 2, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "GPe_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/InhibitoryMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.92049366, 1.0002509, 1.3659552)
+            double3 xformOp:translate = (0.06295385546215204, 1.9153915918843012, 0.023144177015701376)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "env_light"
+            {
+                token visibility = "invisible"
+            }
+        }
+    }
+
+    over "STN"
+    {
+        over "STN_Neuron"
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.8953532, 1, 0.8953532)
+            double3 xformOp:translate = (-2.238572915488711, -2.1812715971169547, -2.9932421095870843)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Sphere"
+            {
+                over "Sphere" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/DopamineMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (0.70400506, 1, 0.70400506)
+                    double3 xformOp:translate = (-1.3729151779998157, 8.881784197001252e-16, -2.9247307417572963)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+            }
+        }
+    }
+
+    over "Thalamus"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, -10, -0.6237652508393099)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "Thalamic_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/ThalamicMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (107.90572, 53.114742, 195.93156)
+            float3 xformOp:scale = (0.89029545, 1, 0.89029545)
+            double3 xformOp:translate = (-3.522533123819019, -1.4195105499909904, 0.12107061555437937)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Icosphere"
+            {
+                float3 xformOp:rotateXYZ = (20.175451, 14.982818, 5.0330896)
+                float3 xformOp:scale = (0.7803892, 0.62283176, 0.48605117)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+
+    over "Cortex"
+    {
+        over "PyramidalNeuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/CortexMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (1, 1.3701369, 1.4818393)
+            double3 xformOp:translate = (0, 0.39148926620644886, 3.7891530203784443e-29)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "NurbsPath_004"
+            {
+                float3 xformOp:rotateXYZ = (101.96691, 80.51856, 61.614502)
+                float3 xformOp:scale = (0.99999994, 1, 1)
+                double3 xformOp:translate = (-1.7856249809265137, -1.1572706699371338, 1.2427637577056885)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+
+            over "Top"
+            {
+                float3 xformOp:rotateXYZ = (0, -0, 0)
+                float3 xformOp:scale = (0.4433625, 0.4433625, 0.4433625)
+                double3 xformOp:translate = (0.8056604266166687, 1.265913963317871, 2.768777370452881)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+
+    over "SNc" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </Materials/DopamineMaterial> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+        float3 xformOp:rotateXYZ = (-99.041695, 59.64532, -4.46619)
+        float3 xformOp:scale = (1, 1.0282137, 1.0282137)
+        double3 xformOp:translate = (0, 6.345642597275972, -10)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+        over "DopamineParticles"
+        {
+            active = true
+            point3f[] positions.timeSamples = {
+                0: [(0.050, 0.4000, 0.0200), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                1: [(-0.497, 0.0182, 0.2360), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                2: [(-1.800, -0.8922, 0.7511), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                3: [(-3.356, -1.9789, 1.3659), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                4: [(-4.660, -2.8893, 1.8810), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                5: [(-5.206, -3.2711, 2.0970), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                6: [(-5.432, -3.6274, 2.2593), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                7: [(-5.969, -4.4768, 2.6463), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                8: [(-6.610, -5.4906, 3.1082), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                9: [(-7.148, -6.3401, 3.4952), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                10: [(-7.373, -6.6963, 3.6575), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                11: [(-7.319, -6.9096, 3.7926), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                12: [(-7.191, -7.4182, 4.1150), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                13: [(-7.038, -8.0252, 4.4997), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                14: [(-6.910, -8.5338, 4.8220), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                15: [(-6.856, -8.7471, 4.9572), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                16: [(-6.851, -8.7353, 4.8264), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                17: [(-6.838, -8.7069, 4.5143), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                18: [(-6.823, -8.6731, 4.1419), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                19: [(-6.810, -8.6448, 3.8299), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                20: [(-6.805, -8.6329, 3.6990), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                21: [(-6.800, -8.6220, 3.5782), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                22: [(-6.788, -8.5958, 3.2902), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                23: [(-6.774, -8.5646, 2.9464), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                24: [(-6.763, -8.5385, 2.6584), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                25: [(-6.758, -8.5275, 2.5376), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+                240: [(-6.758, -8.5275, 2.5376), (-0.080, 0.3500, -0.0400), (0.100, 0.4500, 0.0500), (-0.060, 0.4200, -0.0300), (0.110, 0.3800, -0.0500), (-0.100, 0.4600, 0.0400), (0.070, 0.3300, -0.0600), (-0.090, 0.4100, 0.0700), (0.120, 0.4400, -0.0200), (-0.050, 0.3700, 0.0800), (0.080, 0.4800, -0.0700), (-0.110, 0.3900, 0.0300), (0.060, 0.3600, 0.0600), (-0.070, 0.4300, -0.0500), (0.090, 0.4700, 0.0100), (-0.120, 0.3400, -0.0800), (0.040, 0.4000, 0.0900), (-0.030, 0.4500, -0.0100), (0.100, 0.3200, 0.0500), (-0.080, 0.4900, -0.0400)],
+            }
+
+            over "Prototypes"
+            {
+                over "Vesicle"
+                {
+                    double radius = 0.15
+                }
+            }
+        }
+    }
+
+    def Xform "Striatum_01" (
+        prepend apiSchemas = ["GeomModelAPI"]
+        doc = "Striatum group — contains D1 and D2 MSNs. DrawMode controlled by displayLOD variant."
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-16.26249420242595, 5.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPi_01" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-21.262494202425934, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPe_01" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.77004117, 0.77004117, 1)
+        double3 xformOp:translate = (-11.262494202425948, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "STN_01" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-8.262494202425948, -8.23305619495175, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Thalamus_01" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-16.26249420242595, -14.23305619495175, -0.6237652508393099)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Cortex_01"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-16.26249420242595, 13.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Striatum_02" (
+        prepend apiSchemas = ["GeomModelAPI"]
+        doc = "Striatum group — contains D1 and D2 MSNs. DrawMode controlled by displayLOD variant."
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-32.55543435407729, 5.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPi_02" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-37.55543435407728, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPe_02" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.77004117, 0.77004117, 1)
+        double3 xformOp:translate = (-27.555434354077292, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "STN_02" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-24.555434354077292, -8.23305619495175, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Thalamus_02" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-32.55543435407729, -14.23305619495175, -0.6237652508393099)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Cortex_02"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-32.55543435407729, 13.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Striatum_03" (
+        prepend apiSchemas = ["GeomModelAPI"]
+        doc = "Striatum group — contains D1 and D2 MSNs. DrawMode controlled by displayLOD variant."
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-48.3821836281565, 5.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPi_03" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-53.38218362815648, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "GPe_03" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.77004117, 0.77004117, 1)
+        double3 xformOp:translate = (-43.3821836281565, -2.2330561949517502, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "STN_03" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-40.3821836281565, -8.23305619495175, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Thalamus_03" (
+        prepend apiSchemas = ["GeomModelAPI"]
+    )
+    {
+        uniform bool model:applyDrawMode = 1
+        uniform token model:drawMode = "default"
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-48.3821836281565, -14.23305619495175, -0.6237652508393099)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Xform "Cortex_03"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (-48.3821836281565, 13.76694380504825, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def Mesh "Cylinder"
+    {
+        float3[] extent = [(-50, -50, -50), (50, 50, 50)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 32, 33, 1, 1, 33, 34, 2, 2, 34, 35, 3, 3, 35, 36, 4, 4, 36, 37, 5, 5, 37, 38, 6, 6, 38, 39, 7, 7, 39, 40, 8, 8, 40, 41, 9, 9, 41, 42, 10, 10, 42, 43, 11, 11, 43, 44, 12, 12, 44, 45, 13, 13, 45, 46, 14, 14, 46, 47, 15, 15, 47, 48, 16, 16, 48, 49, 17, 17, 49, 50, 18, 18, 50, 51, 19, 19, 51, 52, 20, 20, 52, 53, 21, 21, 53, 54, 22, 22, 54, 55, 23, 23, 55, 56, 24, 24, 56, 57, 25, 25, 57, 58, 26, 26, 58, 59, 27, 27, 59, 60, 28, 28, 60, 61, 29, 29, 61, 62, 30, 30, 62, 63, 31, 31, 63, 32, 0, 0, 1, 64, 1, 2, 64, 2, 3, 64, 3, 4, 64, 4, 5, 64, 5, 6, 64, 6, 7, 64, 7, 8, 64, 8, 9, 64, 9, 10, 64, 10, 11, 64, 11, 12, 64, 12, 13, 64, 13, 14, 64, 14, 15, 64, 15, 16, 64, 16, 17, 64, 17, 18, 64, 18, 19, 64, 19, 20, 64, 20, 21, 64, 21, 22, 64, 22, 23, 64, 23, 24, 64, 24, 25, 64, 25, 26, 64, 26, 27, 64, 27, 28, 64, 28, 29, 64, 29, 30, 64, 30, 31, 64, 31, 0, 64, 32, 65, 33, 33, 65, 34, 34, 65, 35, 35, 65, 36, 36, 65, 37, 37, 65, 38, 38, 65, 39, 39, 65, 40, 40, 65, 41, 41, 65, 42, 42, 65, 43, 43, 65, 44, 44, 65, 45, 45, 65, 46, 46, 65, 47, 47, 65, 48, 48, 65, 49, 49, 65, 50, 50, 65, 51, 51, 65, 52, 52, 65, 53, 53, 65, 54, 54, 65, 55, 55, 65, 56, 56, 65, 57, 57, 65, 58, 58, 65, 59, 59, 65, 60, 60, 65, 61, 61, 65, 62, 62, 65, 63, 63, 65, 32]
+        normal3f[] normals = [(50, 0, 0), (50, 0, 0), (49.03926, 0, 9.754517), (49.03926, 0, 9.754517), (49.03926, 0, 9.754517), (49.03926, 0, 9.754517), (46.193974, 0, 19.13417), (46.193974, 0, 19.13417), (46.193974, 0, 19.13417), (46.193974, 0, 19.13417), (41.57348, 0, 27.778513), (41.57348, 0, 27.778513), (41.57348, 0, 27.778513), (41.57348, 0, 27.778513), (35.35534, 0, 35.35534), (35.35534, 0, 35.35534), (35.35534, 0, 35.35534), (35.35534, 0, 35.35534), (27.778513, 0, 41.57348), (27.778513, 0, 41.57348), (27.778513, 0, 41.57348), (27.778513, 0, 41.57348), (19.13417, 0, 46.193974), (19.13417, 0, 46.193974), (19.13417, 0, 46.193974), (19.13417, 0, 46.193974), (9.754517, 0, 49.03926), (9.754517, 0, 49.03926), (9.754517, 0, 49.03926), (9.754517, 0, 49.03926), (3.061617e-15, 0, 50), (3.061617e-15, 0, 50), (3.061617e-15, 0, 50), (3.061617e-15, 0, 50), (-9.754517, 0, 49.03926), (-9.754517, 0, 49.03926), (-9.754517, 0, 49.03926), (-9.754517, 0, 49.03926), (-19.13417, 0, 46.193974), (-19.13417, 0, 46.193974), (-19.13417, 0, 46.193974), (-19.13417, 0, 46.193974), (-27.778513, 0, 41.57348), (-27.778513, 0, 41.57348), (-27.778513, 0, 41.57348), (-27.778513, 0, 41.57348), (-35.35534, 0, 35.35534), (-35.35534, 0, 35.35534), (-35.35534, 0, 35.35534), (-35.35534, 0, 35.35534), (-41.57348, 0, 27.778513), (-41.57348, 0, 27.778513), (-41.57348, 0, 27.778513), (-41.57348, 0, 27.778513), (-46.193974, 0, 19.13417), (-46.193974, 0, 19.13417), (-46.193974, 0, 19.13417), (-46.193974, 0, 19.13417), (-49.03926, 0, 9.754517), (-49.03926, 0, 9.754517), (-49.03926, 0, 9.754517), (-49.03926, 0, 9.754517), (-50, 0, 6.123234e-15), (-50, 0, 6.123234e-15), (-50, 0, 6.123234e-15), (-50, 0, 6.123234e-15), (-49.03926, 0, -9.754517), (-49.03926, 0, -9.754517), (-49.03926, 0, -9.754517), (-49.03926, 0, -9.754517), (-46.193974, 0, -19.13417), (-46.193974, 0, -19.13417), (-46.193974, 0, -19.13417), (-46.193974, 0, -19.13417), (-41.57348, 0, -27.778513), (-41.57348, 0, -27.778513), (-41.57348, 0, -27.778513), (-41.57348, 0, -27.778513), (-35.35534, 0, -35.35534), (-35.35534, 0, -35.35534), (-35.35534, 0, -35.35534), (-35.35534, 0, -35.35534), (-27.778513, 0, -41.57348), (-27.778513, 0, -41.57348), (-27.778513, 0, -41.57348), (-27.778513, 0, -41.57348), (-19.13417, 0, -46.193974), (-19.13417, 0, -46.193974), (-19.13417, 0, -46.193974), (-19.13417, 0, -46.193974), (-9.754517, 0, -49.03926), (-9.754517, 0, -49.03926), (-9.754517, 0, -49.03926), (-9.754517, 0, -49.03926), (-9.184851e-15, 0, -50), (-9.184851e-15, 0, -50), (-9.184851e-15, 0, -50), (-9.184851e-15, 0, -50), (9.754517, 0, -49.03926), (9.754517, 0, -49.03926), (9.754517, 0, -49.03926), (9.754517, 0, -49.03926), (19.13417, 0, -46.193974), (19.13417, 0, -46.193974), (19.13417, 0, -46.193974), (19.13417, 0, -46.193974), (27.778513, 0, -41.57348), (27.778513, 0, -41.57348), (27.778513, 0, -41.57348), (27.778513, 0, -41.57348), (35.35534, 0, -35.35534), (35.35534, 0, -35.35534), (35.35534, 0, -35.35534), (35.35534, 0, -35.35534), (41.57348, 0, -27.778513), (41.57348, 0, -27.778513), (41.57348, 0, -27.778513), (41.57348, 0, -27.778513), (46.193974, 0, -19.13417), (46.193974, 0, -19.13417), (46.193974, 0, -19.13417), (46.193974, 0, -19.13417), (49.03926, 0, -9.754517), (49.03926, 0, -9.754517), (49.03926, 0, -9.754517), (49.03926, 0, -9.754517), (50, 0, 0), (50, 0, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(50, -50, 0), (49.03926, -50, 9.754517), (46.193974, -50, 19.13417), (41.57348, -50, 27.778513), (35.35534, -50, 35.35534), (27.778513, -50, 41.57348), (19.13417, -50, 46.193974), (9.754517, -50, 49.03926), (3.061617e-15, -50, 50), (-9.754517, -50, 49.03926), (-19.13417, -50, 46.193974), (-27.778513, -50, 41.57348), (-35.35534, -50, 35.35534), (-41.57348, -50, 27.778513), (-46.193974, -50, 19.13417), (-49.03926, -50, 9.754517), (-50, -50, 6.123234e-15), (-49.03926, -50, -9.754517), (-46.193974, -50, -19.13417), (-41.57348, -50, -27.778513), (-35.35534, -50, -35.35534), (-27.778513, -50, -41.57348), (-19.13417, -50, -46.193974), (-9.754517, -50, -49.03926), (-9.184851e-15, -50, -50), (9.754517, -50, -49.03926), (19.13417, -50, -46.193974), (27.778513, -50, -41.57348), (35.35534, -50, -35.35534), (41.57348, -50, -27.778513), (46.193974, -50, -19.13417), (49.03926, -50, -9.754517), (50, 50, 0), (49.03926, 50, 9.754517), (46.193974, 50, 19.13417), (41.57348, 50, 27.778513), (35.35534, 50, 35.35534), (27.778513, 50, 41.57348), (19.13417, 50, 46.193974), (9.754517, 50, 49.03926), (3.061617e-15, 50, 50), (-9.754517, 50, 49.03926), (-19.13417, 50, 46.193974), (-27.778513, 50, 41.57348), (-35.35534, 50, 35.35534), (-41.57348, 50, 27.778513), (-46.193974, 50, 19.13417), (-49.03926, 50, 9.754517), (-50, 50, 6.123234e-15), (-49.03926, 50, -9.754517), (-46.193974, 50, -19.13417), (-41.57348, 50, -27.778513), (-35.35534, 50, -35.35534), (-27.778513, 50, -41.57348), (-19.13417, 50, -46.193974), (-9.754517, 50, -49.03926), (-9.184851e-15, 50, -50), (9.754517, 50, -49.03926), (19.13417, 50, -46.193974), (27.778513, 50, -41.57348), (35.35534, 50, -35.35534), (41.57348, 50, -27.778513), (46.193974, 50, -19.13417), (49.03926, 50, -9.754517), (0, -50, 0), (0, 50, 0)]
+        texCoord2f[] primvars:st = [(1, 0), (1, 1), (0.96875, 1), (0.96875, 0), (0.96875, 0), (0.96875, 1), (0.9375, 1), (0.9375, 0), (0.9375, 0), (0.9375, 1), (0.90625, 1), (0.90625, 0), (0.90625, 0), (0.90625, 1), (0.875, 1), (0.875, 0), (0.875, 0), (0.875, 1), (0.84375, 1), (0.84375, 0), (0.84375, 0), (0.84375, 1), (0.8125, 1), (0.8125, 0), (0.8125, 0), (0.8125, 1), (0.78125, 1), (0.78125, 0), (0.78125, 0), (0.78125, 1), (0.75, 1), (0.75, 0), (0.75, 0), (0.75, 1), (0.71875, 1), (0.71875, 0), (0.71875, 0), (0.71875, 1), (0.6875, 1), (0.6875, 0), (0.6875, 0), (0.6875, 1), (0.65625, 1), (0.65625, 0), (0.65625, 0), (0.65625, 1), (0.625, 1), (0.625, 0), (0.625, 0), (0.625, 1), (0.59375, 1), (0.59375, 0), (0.59375, 0), (0.59375, 1), (0.5625, 1), (0.5625, 0), (0.5625, 0), (0.5625, 1), (0.53125, 1), (0.53125, 0), (0.53125, 0), (0.53125, 1), (0.5, 1), (0.5, 0), (0.5, 0), (0.5, 1), (0.46875, 1), (0.46875, 0), (0.46875, 0), (0.46875, 1), (0.4375, 1), (0.4375, 0), (0.4375, 0), (0.4375, 1), (0.40625, 1), (0.40625, 0), (0.40625, 0), (0.40625, 1), (0.375, 1), (0.375, 0), (0.375, 0), (0.375, 1), (0.34375, 1), (0.34375, 0), (0.34375, 0), (0.34375, 1), (0.3125, 1), (0.3125, 0), (0.3125, 0), (0.3125, 1), (0.28125, 1), (0.28125, 0), (0.28125, 0), (0.28125, 1), (0.25, 1), (0.25, 0), (0.25, 0), (0.25, 1), (0.21875, 1), (0.21875, 0), (0.21875, 0), (0.21875, 1), (0.1875, 1), (0.1875, 0), (0.1875, 0), (0.1875, 1), (0.15625, 1), (0.15625, 0), (0.15625, 0), (0.15625, 1), (0.125, 1), (0.125, 0), (0.125, 0), (0.125, 1), (0.09375, 1), (0.09375, 0), (0.09375, 0), (0.09375, 1), (0.0625, 1), (0.0625, 0), (0.0625, 0), (0.0625, 1), (0.03125, 1), (0.03125, 0), (0.03125, 0), (0.03125, 1), (0, 1), (0, 0), (1, 0.5), (0.99039257, 0.59754515), (0.5, 0.5), (0.99039257, 0.59754515), (0.9619397, 0.6913417), (0.5, 0.5), (0.9619397, 0.6913417), (0.91573477, 0.7777851), (0.5, 0.5), (0.91573477, 0.7777851), (0.8535534, 0.8535534), (0.5, 0.5), (0.8535534, 0.8535534), (0.7777851, 0.91573477), (0.5, 0.5), (0.7777851, 0.91573477), (0.6913417, 0.9619397), (0.5, 0.5), (0.6913417, 0.9619397), (0.59754515, 0.99039257), (0.5, 0.5), (0.59754515, 0.99039257), (0.5, 1), (0.5, 0.5), (0.5, 1), (0.40245485, 0.99039257), (0.5, 0.5), (0.40245485, 0.99039257), (0.3086583, 0.9619397), (0.5, 0.5), (0.3086583, 0.9619397), (0.22221488, 0.91573477), (0.5, 0.5), (0.22221488, 0.91573477), (0.14644659, 0.8535534), (0.5, 0.5), (0.14644659, 0.8535534), (0.08426523, 0.7777851), (0.5, 0.5), (0.08426523, 0.7777851), (0.038060308, 0.6913417), (0.5, 0.5), (0.038060308, 0.6913417), (0.009607434, 0.59754515), (0.5, 0.5), (0.009607434, 0.59754515), (0, 0.5), (0.5, 0.5), (0, 0.5), (0.009607434, 0.40245485), (0.5, 0.5), (0.009607434, 0.40245485), (0.038060308, 0.3086583), (0.5, 0.5), (0.038060308, 0.3086583), (0.08426523, 0.22221488), (0.5, 0.5), (0.08426523, 0.22221488), (0.14644659, 0.14644659), (0.5, 0.5), (0.14644659, 0.14644659), (0.22221488, 0.08426523), (0.5, 0.5), (0.22221488, 0.08426523), (0.3086583, 0.038060308), (0.5, 0.5), (0.3086583, 0.038060308), (0.40245485, 0.009607434), (0.5, 0.5), (0.40245485, 0.009607434), (0.5, 0), (0.5, 0.5), (0.5, 0), (0.59754515, 0.009607434), (0.5, 0.5), (0.59754515, 0.009607434), (0.6913417, 0.038060308), (0.5, 0.5), (0.6913417, 0.038060308), (0.7777851, 0.08426523), (0.5, 0.5), (0.7777851, 0.08426523), (0.8535534, 0.14644659), (0.5, 0.5), (0.8535534, 0.14644659), (0.91573477, 0.22221488), (0.5, 0.5), (0.91573477, 0.22221488), (0.9619397, 0.3086583), (0.5, 0.5), (0.9619397, 0.3086583), (0.99039257, 0.40245485), (0.5, 0.5), (0.99039257, 0.40245485), (1, 0.5), (0.5, 0.5), (1, 0.5), (0.5, 0.5), (0.99039257, 0.40245482), (0.99039257, 0.40245482), (0.5, 0.5), (0.9619397, 0.3086583), (0.9619397, 0.3086583), (0.5, 0.5), (0.91573477, 0.22221488), (0.91573477, 0.22221488), (0.5, 0.5), (0.8535534, 0.14644662), (0.8535534, 0.14644662), (0.5, 0.5), (0.7777851, 0.0842652), (0.7777851, 0.0842652), (0.5, 0.5), (0.6913417, 0.038060278), (0.6913417, 0.038060278), (0.5, 0.5), (0.59754515, 0.0096074045), (0.59754515, 0.0096074045), (0.5, 0.5), (0.5, 0), (0.5, 0), (0.5, 0.5), (0.40245485, 0.0096074045), (0.40245485, 0.0096074045), (0.5, 0.5), (0.3086583, 0.038060278), (0.3086583, 0.038060278), (0.5, 0.5), (0.22221488, 0.0842652), (0.22221488, 0.0842652), (0.5, 0.5), (0.14644659, 0.14644662), (0.14644659, 0.14644662), (0.5, 0.5), (0.08426523, 0.22221488), (0.08426523, 0.22221488), (0.5, 0.5), (0.038060308, 0.3086583), (0.038060308, 0.3086583), (0.5, 0.5), (0.009607434, 0.40245482), (0.009607434, 0.40245482), (0.5, 0.5), (0, 0.5), (0, 0.5), (0.5, 0.5), (0.009607434, 0.59754515), (0.009607434, 0.59754515), (0.5, 0.5), (0.038060308, 0.6913417), (0.038060308, 0.6913417), (0.5, 0.5), (0.08426523, 0.7777851), (0.08426523, 0.7777851), (0.5, 0.5), (0.14644659, 0.8535534), (0.14644659, 0.8535534), (0.5, 0.5), (0.22221488, 0.91573477), (0.22221488, 0.91573477), (0.5, 0.5), (0.3086583, 0.9619397), (0.3086583, 0.9619397), (0.5, 0.5), (0.40245485, 0.99039257), (0.40245485, 0.99039257), (0.5, 0.5), (0.5, 1), (0.5, 1), (0.5, 0.5), (0.59754515, 0.99039257), (0.59754515, 0.99039257), (0.5, 0.5), (0.6913417, 0.9619397), (0.6913417, 0.9619397), (0.5, 0.5), (0.7777851, 0.91573477), (0.7777851, 0.91573477), (0.5, 0.5), (0.8535534, 0.8535534), (0.8535534, 0.8535534), (0.5, 0.5), (0.91573477, 0.7777851), (0.91573477, 0.7777851), (0.5, 0.5), (0.9619397, 0.6913417), (0.9619397, 0.6913417), (0.5, 0.5), (0.99039257, 0.59754515), (0.99039257, 0.59754515), (0.5, 0.5), (1, 0.5)] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        quatd xformOp:orient = (1, 0, 0, 0)
+        double3 xformOp:scale = (0.002498816440582313, 0.039202667616912226, 0.0005162254635932813)
+        double3 xformOp:translate = (-0.3148242359096515, 11.086381371799888, -10.163924317272423)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+    variantSet "displayLOD" = {
+        "billboard_cards" (
+            doc = "Cards mode — textured quad sprites. Renderers substitute pre-baked textures."
+        ) {
+            over "Striatum"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+            over "GPi"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+            over "GPe"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+            over "STN"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+            over "Thalamus"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+            over "SNc"
+            {
+                uniform token model:drawMode = "cards"
+            }
+
+        }
+        "circuit_diagram" (
+            doc = "Bounding box display — abstract circuit diagram view. Fast rendering."
+        ) {
+            over "Striatum"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+            over "GPi"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+            over "GPe"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+            over "STN"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+            over "Thalamus"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+            over "SNc"
+            {
+                uniform token model:drawMode = "bounds"
+            }
+
+        }
+        "full_detail" (
+            doc = "Full neuron geometry — for hero shots and close-ups"
+        ) {
+            over "Striatum"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+            over "GPi"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+            over "GPe"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+            over "STN"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+            over "Thalamus"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+            over "SNc"
+            {
+                uniform token model:drawMode = "default"
+            }
+
+        }
+    }
+}
+
+def "Render" (
+    hide_in_stage_window = true
+    no_delete = true
+)
+{
+    def "OmniverseKit"
+    {
+        def "HydraTextures" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            def RenderProduct "omni_kit_widget_viewport_ViewportTexture_0" (
+                prepend apiSchemas = ["OmniRtxSettingsCommonAdvancedAPI_1", "OmniRtxSettingsRtAdvancedAPI_1", "OmniRtxSettingsPtAdvancedAPI_1", "OmniRtxPostColorGradingAPI_1", "OmniRtxPostChromaticAberrationAPI_1", "OmniRtxPostBloomPhysicalAPI_1", "OmniRtxPostMatteObjectAPI_1", "OmniRtxPostCompositingAPI_1", "OmniRtxPostDofAPI_1", "OmniRtxPostMotionBlurAPI_1", "OmniRtxPostTvNoiseAPI_1", "OmniRtxPostTonemapIrayReinhardAPI_1", "OmniRtxPostDebugSettingsAPI_1", "OmniRtxDebugSettingsAPI_1"]
+                hide_in_stage_window = true
+                no_delete = true
+            )
+            {
+                rel camera = </OmniverseKit_Persp>
+                token omni:rtx:ambientOcclusion:denoiserMode = "none"
+                token omni:rtx:background:source:texture:textureMode = "repeatMirrored"
+                token omni:rtx:background:source:type = "domeLight"
+                bool omni:rtx:debug:view:pixelDebug:enableFixedTextPos = 1
+                token omni:rtx:directLighting:sampledLighting:denoisingTechnique = "None"
+                bool omni:rtx:dlss:frameGeneration = 1
+                bool omni:rtx:indirectDiffuse:denoiser:enabled = 0
+                bool omni:rtx:material:db:nonVisualMaterialCSV:enabled = 0
+                bool omni:rtx:material:db:syncLoads = 1
+                bool omni:rtx:post:compositing:outputAlpha
+                token omni:rtx:post:dlss:execMode = "performance"
+                bool omni:rtx:post:registeredCompositing:invertColorCorrection = 1
+                bool omni:rtx:post:registeredCompositing:invertToneMap = 1
+                bool omni:rtx:pt:adaptiveSampling:filterError = 0
+                uint omni:rtx:pt:adaptiveSampling:fixedSppIterations = 2
+                float omni:rtx:pt:fireflyFilter:maxPerEmissiveUnexposedIntensity = 3199.9995
+                float omni:rtx:pt:fireflyFilter:maxUnexposedIntensityPerSample = 3199.9995
+                float omni:rtx:pt:fireflyFilter:maxUnexposedIntensityPerSampleDiffuse = 3199.9995
+                bool omni:rtx:pt:lightcache:cached:dontResolveConflicts = 1
+                int omni:rtx:pt:maxSamplesPerLaunch = 2073600
+                int omni:rtx:pt:mgpu:maxPixelsPerRegionExponent = 12
+                int omni:rtx:pt:samplesPerPixel
+                bool omni:rtx:reflections:denoiser:enabled = 0
+                token omni:rtx:rendermode = "RealTimePathTracing"
+                color3f omni:rtx:rt:ambientLight:color = (0.1, 0.1, 0.1)
+                bool omni:rtx:rt:demoire = 0
+                float omni:rtx:rt:directLighting:maxRayUnexposedIntensity = 6399.999
+                bool omni:rtx:rt:ecoMode:enabled
+                float omni:rtx:rt:indirectdiffuse:maxRayUnexposedIntensity = 6399.999
+                float omni:rtx:rt:inscattering:maxRTSampleUnexposedIntensity = 204799.97
+                bool omni:rtx:rt:lightcache:spatialCache:dontResolveConflicts = 1
+                float omni:rtx:rt:refractions:maxRayUnexposedIntensity = 19199.998
+                int omni:rtx:rt:sss:samples = 1
+                int omni:rtx:rtpt:maxVolumeBounces = 15
+                float omni:rtx:rtpt:modulatingRoughnessThreshold = 0.08
+                bool omni:rtx:scene:hydra:materialSyncLoads = 1
+                bool omni:rtx:scene:hydra:mdlMaterialWarmup = 1
+                bool omni:rtx:scene:useViewLightingMode = 1
+                uint omni:rtx:viewTile:limit = 4294967295
+                rel orderedVars = </Render/Vars/LdrColor>
+                custom bool overrideClipRange = 0
+                uniform int2 resolution = (1280, 720)
+            }
+        }
+    }
+
+    def RenderSettings "OmniverseGlobalRenderSettings" (
+        prepend apiSchemas = ["OmniRtxSettingsGlobalRtAdvancedAPI_1", "OmniRtxSettingsGlobalPtAdvancedAPI_1"]
+        no_delete = true
+    )
+    {
+        rel products = </Render/OmniverseKit/HydraTextures/omni_kit_widget_viewport_ViewportTexture_0>
+    }
+
+    def "Vars"
+    {
+        def RenderVar "LdrColor" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            uniform string sourceName = "LdrColor"
+        }
+    }
+}
+
+over "OmniverseKit_Persp" (
+    prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+    customData = {
+        dictionary omni = {
+            dictionary kit = {
+                bool hide_in_stage_window = 1
+                bool no_delete = 1
+            }
+        }
+    }
+    hide_in_stage_window = true
+    kind = "component"
+    no_delete = true
+)
+{
+    float2 clippingRange = (1, 10000000)
+    float exposure:fStop = 5
+    float exposure:responsivity = 1.1026709
+    float exposure:time = 0.02
+    float focalLength = 18.147562
+    float focusDistance = 400
+    custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -145.3888832756445)
+    float3 xformOp:rotateXYZ = (154.56755, -50.569317, -180)
+    float3 xformOp:scale = (1, 1, 1)
+    double3 xformOp:translate = (-22.920088252483215, 24.307849994248095, -19.004196059282087)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+}
+
+over "OmniverseKit_Front" (
+    customData = {
+        dictionary omni = {
+            dictionary kit = {
+                bool hide_in_stage_window = 1
+                bool no_delete = 1
+            }
+        }
+    }
+    hide_in_stage_window = true
+    kind = "component"
+    no_delete = true
+)
+{
+    float2 clippingRange = (1, 10000000)
+    float horizontalAperture = 50
+    custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -500)
+    token projection = "orthographic"
+    float verticalAperture = 50
+    float3 xformOp:rotateXYZ = (-0, 0, -0)
+    float3 xformOp:scale = (1, 1, 1)
+    double3 xformOp:translate = (0, 0, 500)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+}
+
+over "OmniverseKit_Right" (
+    customData = {
+        dictionary omni = {
+            dictionary kit = {
+                bool hide_in_stage_window = 1
+                bool no_delete = 1
+            }
+        }
+    }
+    hide_in_stage_window = true
+    kind = "component"
+    no_delete = true
+)
+{
+    float2 clippingRange = (1, 10000000)
+    float horizontalAperture = 50
+    custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -500)
+    token projection = "orthographic"
+    float verticalAperture = 50
+    float3 xformOp:rotateXYZ = (0, -90, -0)
+    float3 xformOp:scale = (1, 1, 1)
+    double3 xformOp:translate = (-500, 0, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+}
+
+over "OmniverseKit_Top" (
+    prepend apiSchemas = ["OmniRtxCameraAutoExposureAPI_1", "OmniRtxCameraExposureAPI_1"]
+    customData = {
+        dictionary omni = {
+            dictionary kit = {
+                bool hide_in_stage_window = 1
+                bool no_delete = 1
+            }
+        }
+    }
+    hide_in_stage_window = true
+    kind = "component"
+    no_delete = true
+)
+{
+    float2 clippingRange = (1, 10000000)
+    float exposure:responsivity = 1.1026709
+    float exposure:time = 0.02
+    float horizontalAperture = 832.0123
+    custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -500)
+    token projection = "orthographic"
+    float verticalAperture = 832.0123
+    float3 xformOp:rotateXYZ = (90, -4.961563e-15, 180)
+    float3 xformOp:scale = (1, 1, 1)
+    double3 xformOp:translate = (0, 500, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+}
+
+over "Materials"
+{
+    over "NeuronBaseMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:diffuseColor = (0.29943714, 0.364663, 0.42988503)
+            color3f inputs:emissiveColor = (0.1664028, 0.10241778, 0.524138)
+            float inputs:opacityThreshold = 0.35999998
+            float inputs:roughness = 0.51
+            color3f inputs:specularColor = (0, 0, 0)
+        }
+    }
+
+    over "IndirectPathwayMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:diffuseColor = (0.16739082, 0.16285375, 0.49195403)
+            color3f inputs:specularColor = (0.25634813, 0.1789193, 0.42298853)
+        }
+    }
+}
+
+over "Connections"
+{
+    over "SNc_to_D1"
+    {
+        token visibility = "invisible"
+    }
+
+    over "Cortex_to_D1" (
+        active = false
+    )
+    {
+    }
+
+    over "STN_to_GPi" (
+        active = false
+    )
+    {
+    }
+
+    over "GPi_to_Thalamus" (
+        active = false
+    )
+    {
+    }
+
+    over "Cortex_to_STN" (
+        active = false
+    )
+    {
+    }
+
+    over "GPe_to_STN" (
+        active = false
+    )
+    {
+    }
+
+    over "SNc_to_D2" (
+        active = false
+    )
+    {
+    }
+
+    over "Cortex_to_D2" (
+        active = false
+    )
+    {
+    }
+}
+
+def PhysicsScene "PhysicsScene" (
+    prepend apiSchemas = ["PhysxSceneAPI", "NewtonSceneAPI"]
+)
+{
+}
+

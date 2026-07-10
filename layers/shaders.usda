@@ -226,4 +226,163 @@ def Xform "Materials" (
             token outputs:surface
         }
     }
+
+    # ─── CortexMaterial ────────────────────────────────────────────────────────
+    # Motor cortex pyramidal neuron — pink-red, excitatory.
+    # Base emissive is zero at rest; animation.usda flashes it pink-red during
+    # cortical activation (frames 0-30).
+
+    def Material "CortexMaterial" (
+        doc = "Motor cortex pyramidal neuron — pink-red, zero base emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/CortexMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.9, 0.55, 0.65)
+            float inputs:roughness = 0.3
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.0, 0.0, 0.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── GPiMaterial ─────────────────────────────────────────────────────────────
+    # GPi dedicated material — deep purple, tonically active at 70 Hz.
+    # Base emissive (0.3, 0.15, 0.5) reflects constant inhibitory firing.
+    # animation.usda dims it to (0,0,0) during the Go pathway suppression.
+    # Kept separate from InhibitoryMaterial so GPe is not animated.
+
+    def Material "GPiMaterial" (
+        doc = "GPi dedicated material — tonically active purple. Animated dark during Go pathway suppression."
+    )
+    {
+        token outputs:surface.connect = </Materials/GPiMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.5, 0.3, 0.7)
+            float inputs:roughness = 0.4
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.3, 0.15, 0.5)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── Pulse Orb Materials ─────────────────────────────────────────────────────
+    # Bright emissive materials for the three traveling action potential spheres.
+    # In RTX path tracing, emissive values > 1.0 are HDR and produce bloom.
+    # Each orb color matches its neurotransmitter convention:
+    #   Orange = glutamate (Cortex→Striatum), Blue = GABA (D1→GPi), Gold = disinhibition (GPi→Thalamus)
+
+    def Material "PulseOrbCortexMaterial" (
+        doc = "Cortex→Striatum orb — bright orange glutamate emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbCortexMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (1.0, 0.6, 0.3)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (2.0, 1.2, 0.5)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    def Material "PulseOrbD1Material" (
+        doc = "D1→GPi orb — bright blue GABA emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbD1Material/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.2, 0.4, 1.0)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.4, 0.8, 3.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    def Material "PulseOrbGPiMaterial" (
+        doc = "GPi→Thalamus orb — bright gold thalamic release emissive"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbGPiMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (1.0, 0.95, 0.7)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (3.0, 2.8, 1.5)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # ─── Indirect Pathway Orb Materials ──────────────────────────────────────────
+    # Colors match neurotransmitter conventions for the NoGo route:
+    #   Amber  = D2→GPe  (GABA inhibitory, warm orange-amber)
+    #   Lavender = GPe→STN (GABA inhibitory, pale purple)
+    #   Teal   = STN→GPi (Glutamate excitatory, cyan-green)
+
+    def Material "PulseOrbD2Material" (
+        doc = "D2→GPe orb — amber GABA emissive (indirect NoGo pathway)"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbD2Material/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (1.0, 0.6, 0.1)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (2.5, 1.0, 0.2)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    def Material "PulseOrbGPeMaterial" (
+        doc = "GPe→STN orb — lavender GABA emissive (GPe inhibiting STN)"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbGPeMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.7, 0.5, 0.9)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (1.5, 0.8, 2.5)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    def Material "PulseOrbSTNMaterial" (
+        doc = "STN→GPi orb — teal glutamate emissive (STN exciting GPi, hyperdirect)"
+    )
+    {
+        token outputs:surface.connect = </Materials/PulseOrbSTNMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.2, 0.8, 0.7)
+            float inputs:roughness = 0.05
+            float inputs:metallic = 0.0
+            color3f inputs:emissiveColor = (0.4, 2.5, 2.0)
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
 }

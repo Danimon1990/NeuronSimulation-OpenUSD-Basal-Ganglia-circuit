@@ -1,6 +1,6 @@
 #usda 1.0
 (
-    doc = """Animation Layer — Pulse timeSamples, Emissive Flashes, Dopamine Wisps
+    doc = """Animation Layer — Emissive Material Flashes, Pulse Orbs, Dopamine Wisps
 
     ═══════════════════════════════════════════════════════════
     EXAM TOPIC: Time-varying attributes — timeSamples
@@ -16,49 +16,60 @@
       - Accessible via UsdAttribute.Get(time) in Python
       - The strongest opinion for that attribute at that time wins (LIVRPS still applies)
 
+    MATERIAL EMISSIVE ANIMATION (how the glow works):
+      Each nucleus has a dedicated material in shaders.usda with a static base emissive.
+      This animation layer uses 'over "Materials"' at the root level to override
+      inputs:emissiveColor with timeSamples, creating the pulse-triggered shine effect.
+
+      WHY animate the MATERIAL rather than a primvar on the prim?
+        inputs:emissiveColor on a UsdPreviewSurface shader IS what renderers read.
+        primvars:displayColor is a preview fallback only — RTX and path tracers ignore it.
+        Animating at the material level means all prims sharing that material glow together,
+        which is the correct behavior: all GPi neurons suppress simultaneously.
+
+      Material → nucleus ownership:
+        CortexMaterial          → /World/Cortex/PyramidalNeuron
+        DirectPathwayMaterial   → /World/Striatum/D1_MSN
+        IndirectPathwayMaterial → /World/Striatum/D2_MSN
+        GPiMaterial             → /World/GPi/GPi_Neuron  (separate from GPe/InhibitoryMaterial)
+        ThalamicMaterial        → /World/Thalamus/Thalamic_Neuron
+
+    EXAM: timeSamples vs static value precedence:
+      If a layer has timeSamples AND another layer has a static value on the same attribute,
+      the timeSamples layer wins completely — it IS the attribute value.
+      The resting value must be explicitly keyed at frame 0 and 240 so the attribute
+      does not hold an unexpected value outside the active pulse window.
+
     XFORMOP STACKING:
       xformOp:translate, xformOp:rotateXYZ, xformOp:scale are all separate attributes.
-      Their EVALUATION ORDER is defined by xformOpOrder[].
+      Their evaluation order is defined by xformOpOrder[].
       Left-to-right in xformOpOrder = first-to-last transformation applied.
-      Example: ['xformOp:translate', 'xformOp:rotateXYZ']
-      = translate the object, THEN rotate around its new position.
-      vs ['xformOp:rotateXYZ', 'xformOp:translate'] = rotate in place, THEN move.
-      This matters for orbital animations (rotate-then-translate = orbit around center).
-      Our camera uses translate THEN rotate = move to orbit position, then aim at center.
+      translate THEN scale: position the orb, then zero its size to hide it.
 
     THIS LAYER IS THE STRONGEST SUBLAYER:
-      Listed first in basal_ganglia.usda's subLayers.
-      Its timeSamples override any static values in neurons.usda or stimulus.usda.
-      This is intentional: animations must not be overridden by data injection.
-      The pipeline flow is: script writes stimulus → animation overrides for visuals.
+      Listed first in basal_ganglia_hq.usda's subLayers (after pathway_override.usda).
+      Its timeSamples override any static values in shaders.usda or neurons_hq.usda.
 
-    PULSE ORBS:
-      'Pulse orbs' are small Sphere prims that animate along axon paths.
-      They represent action potentials traveling down axons.
-      We animate xformOp:translate to move them along the connection curves.
-      xformOp:scale timeSamples control visibility — scale (0,0,0) = invisible,
-      scale (1,1,1) = full size. This is better than visibility for smooth transitions.
+    PULSE CLUSTERS:
+      Each pulse is a group of independent def Sphere prims (flat siblings inside
+      PulseOrbs scope), not a parent Xform + children. Each sphere carries its own
+      translate.timeSamples (base path + constant offset) and scale.timeSamples
+      (hide/show). Per-sphere material:binding avoids relying on inheritance.
+      Cluster sizes: 4 (glutamate), 4 (GABA), 5 (disinhibition release).
 
     DOPAMINE WISPS (PointInstancer timeSamples):
       Dopamine vesicles rise Y+ from SNc toward striatum continuously.
-      We use positions.timeSamples to key all particle positions at intervals.
-
-      EXAM: PointInstancer positions vs velocities:
-        Explicit timeSamples on positions[]: full control, larger file size.
-        velocities attribute: renderer extrapolates between samples using velocity.
-          position_at_t = position_at_sample + velocity * (t - sample_time)
-        Use timeSamples for precision (hero particles, looping).
-        Use velocities for large particle crowds where approximation is acceptable.
+      Explicit timeSamples on positions[]: full control, looping.
+      velocities attribute would extrapolate but can drift; timeSamples give exact loop.
 
     ANIMATION TIMELINE (240 frames at 24fps = 10 seconds):
-      Frames   0-20:   Cortex receives stimulus, brightens
-      Frames  20-60:   CortexToStriatum pulse orb travels
-      Frames  55-90:   D1 MSN and D2 MSN flash (both receive cortical input)
-      Frames  80-120:  D1ToGPi pulse orb travels (direct pathway propagates)
-      Frames 110-150:  GPi dims (being suppressed by D1 MSN GABA)
-      Frames 120-150:  KEY MOMENT — GPi falls silent
-      Frames 140-180:  GPiToThalamus pulse orb travels (RELEASE of thalamus)
-      Frames 135-200:  Thalamus fires with golden glow (action released!)
+      Frames   0-30:   Cortex receives stimulus, pink-red flash
+      Frames  20-60:   CortexToStriatum pulse orb travels (orange)
+      Frames  55-90:   D1 MSN (blue) and D2 MSN (amber) flash simultaneously
+      Frames  80-120:  D1ToGPi pulse orb travels (blue)
+      Frames 110-150:  GPi dims — D1 MSN GABA suppresses it (KEY VISUAL MOMENT)
+      Frames 140-180:  GPiToThalamus pulse orb travels (gold)
+      Frames 135-200:  Thalamus fires with golden glow — action released!
       Frames   0-240:  Dopamine wisps rise continuously from SNc
     """
     defaultPrim = "World"
@@ -67,289 +78,583 @@
 over "World"
 {
     # ═══════════════════════════════════════════════════════════
-    # EMISSIVE FLASHES ON SOMAS — Direct Pathway (Go wins)
+    # PULSE CLUSTERS — Action Potential Vesicle Groups
     # ═══════════════════════════════════════════════════════════
     #
-    # These primvars:emissiveFlash attributes are custom primvars.
-    # In a production pipeline, you would connect these to the
-    # shader's inputs:emissiveColor via UsdShade connections.
-    # Here they document the intended animation timing for each nucleus.
-    # The emissive values correspond to material colors in shaders.usda.
-
-    # ─── CORTEX FLASH ───────────────────────────────────────────────────────
-    # Cortex receives input stimulus at frame 0. Brightens frames 0-30.
-    # Peak at frame 10: (1.0, 0.4, 0.55) = bright pink-red = motor cortex activation.
-
-    over "Cortex"
-    {
-        over "PyramidalNeuron"
-        {
-            color3f primvars:emissiveFlash.timeSamples = {
-                0: (0.0, 0.0, 0.0),
-                5: (0.4, 0.2, 0.3),
-                10: (1.0, 0.4, 0.55),
-                20: (0.8, 0.3, 0.4),
-                30: (0.0, 0.0, 0.0)
-            }
-        }
-    }
-
-    # ─── STRIATUM FLASHES ───────────────────────────────────────────────────
-    # Both D1 and D2 MSNs receive the cortical input ~40ms after cortex fires.
-    # In scene time: cortex peak at frame 10, striatum peak ~frame 70 (60ms at 24fps).
-    # D1 flashes blue (direct pathway signature).
-    # D2 flashes amber (indirect pathway signature).
-    # Both are active simultaneously — the circuit competes in parallel.
-
-    over "Striatum"
-    {
-        over "D1_MSN"
-        {
-            # Blue flash = D1 direct pathway active
-            color3f primvars:emissiveFlash.timeSamples = {
-                55: (0.0, 0.0, 0.0),
-                60: (0.1, 0.2, 0.8),
-                70: (0.2, 0.4, 1.0),
-                80: (0.1, 0.2, 0.8),
-                90: (0.0, 0.0, 0.0)
-            }
-        }
-        over "D2_MSN"
-        {
-            # Amber flash = D2 indirect pathway active
-            color3f primvars:emissiveFlash.timeSamples = {
-                55: (0.0, 0.0, 0.0),
-                60: (0.4, 0.2, 0.0),
-                70: (1.0, 0.55, 0.1),
-                80: (0.4, 0.2, 0.0),
-                90: (0.0, 0.0, 0.0)
-            }
-        }
-    }
-
-    # ─── GPi SUPPRESSION FLASH ──────────────────────────────────────────────
-    # KEY VISUAL MOMENT: GPi dims as D1 MSN GABA suppresses it.
-    # Frames 110-120: GPi at peak inhibitory activity (receiving GABA from D1 MSN)
-    # Frames 120-150: GPi goes dark — suppressed! — the gate opens for thalamus.
-    # This is visually the most important event: the dark GPi = movement released.
-
-    over "GPi"
-    {
-        over "GPi_Neuron"
-        {
-            color3f primvars:emissiveFlash.timeSamples = {
-                110: (0.3, 0.15, 0.5),
-                120: (0.5, 0.25, 0.8),
-                130: (0.1, 0.05, 0.2),
-                140: (0.02, 0.01, 0.04),
-                150: (0.0, 0.0, 0.0)
-            }
-        }
-    }
-
-    # ─── THALAMUS RELEASE FLASH ─────────────────────────────────────────────
-    # When GPi goes silent (frame 140+), thalamus fires with golden glow.
-    # This is the VICTORY moment — the direct pathway won, action is released.
-    # Peak gold at frame 150: (1.0, 0.95, 0.7) = ThalamicMaterial full emissive.
-    # Thalamic_Neuron's warm gold represents the motor command propagating to cortex.
-
-    over "Thalamus"
-    {
-        over "Thalamic_Neuron"
-        {
-            color3f primvars:emissiveFlash.timeSamples = {
-                135: (0.0, 0.0, 0.0),
-                142: (0.3, 0.28, 0.1),
-                150: (1.0, 0.95, 0.7),
-                165: (0.8, 0.75, 0.5),
-                180: (0.4, 0.38, 0.2),
-                200: (0.0, 0.0, 0.0)
-            }
-        }
-    }
-
-    # ═══════════════════════════════════════════════════════════
-    # PULSE ORBS — Action Potential Spheres
-    # ═══════════════════════════════════════════════════════════
+    # Each cluster is a group of independent def Sphere prims (flat siblings
+    # in the PulseOrbs Scope), NOT a parent Xform with children.
     #
-    # Each orb is a def Sphere (not an 'over') — these are NEW prims created
-    # by this animation layer in the /World/PulseOrbs scope.
-    # Because this is the STRONGEST sublayer, these prims are authoritative.
+    # WHY FLAT SIBLINGS instead of parent Xform + children:
+    #   Scaling a parent Xform to (0,0,0) to hide its children relies on
+    #   renderers correctly propagating degenerate transforms down the hierarchy.
+    #   Isaac Sim RTX does not reliably handle this, so clusters become invisible
+    #   at all frames. Each independent def Sphere carries its own complete
+    #   transform — there is no inheritance risk.
     #
-    # SCALE HIDE/SHOW TECHNIQUE:
-    #   xformOp:scale.timeSamples: (0,0,0) = invisible, (1,1,1) = full size
-    #   One frame before travel starts: scale to (0,0,0) → hidden
-    #   First frame of travel: scale to (1,1,1) → appear
-    #   Last frame of travel: scale to (1,1,1) → still visible
-    #   One frame after travel ends: scale to (0,0,0) → vanish
-    #   This creates a clean appear/vanish without using visibility attribute.
+    # CLUSTER PATTERN:
+    #   Per-sphere offset is baked directly into the translate timeSamples.
+    #   Example: if the base path keyframe is (0, 18, 0) and the sphere's
+    #   offset is (+0.3, +0.1, +0.08), its keyframe is (0.3, 18.1, 0.08).
+    #   All keyframes on the path share the same constant offset.
     #
-    # xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-    #   Translate first (position the orb), then scale (size it up or zero it).
-    #   If reversed, scaling at origin then translating = orb at correct position
-    #   but scale would affect translation distance. Always translate first.
+    # SCALE HIDE/SHOW (on each Sphere individually):
+    #   xformOp:scale (0,0,0) = invisible. (1,1,1) = full size.
+    #   All spheres in a cluster share identical scale timeSamples
+    #   so they appear and vanish together.
+    #
+    # CLUSTER SIZES:
+    #   Cortex→Striatum: 4 spheres — glutamate burst, spread out
+    #   D1→GPi:          4 spheres — GABA vesicles, tighter spacing
+    #   GPi→Thalamus:    5 spheres — largest cluster, the key release event
 
     def Scope "PulseOrbs"
     {
-        # ── Cortex → Striatum pulse (frames 20-60) ─────────────────────────
-        # Orange = glutamatergic. Travels from (0,18,0) to (-4,10,0).
-        # Follows the Cortex_to_D1 connection curve path approximately.
+        # ── Cortex → D1 MSN cluster (frames 20-60, glutamate, orange) ───────────
+        # 4 spheres. Path: Cortex (0,18,0) → D1 dendrite tips (-4,12.5,0) → D1 soma (-4,10,0).
+        # Frame 44 is the dendrite waypoint — orbs visibly enter the dendritic arbor
+        # before dropping to the soma, showing synaptic input on the dendrites.
 
-        def Sphere "CortexToStriatum"
+        def Sphere "CTS_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
         {
-            double radius = 0.2
+            double radius = 0.16
             color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
-
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
             double3 xformOp:translate.timeSamples = {
-                0:  (0.0, 18.0, 0.0),
-                20: (0.0, 18.0, 0.0),
-                40: (-2.0, 14.0, 0.0),
-                60: (-4.0, 10.0, 0.0)
+                0: (0.0, 18.0, 0.0), 20: (0.0, 18.0, 0.0), 44: (-4.0, 12.5, 0.0), 60: (-4.0, 10.0, 0.0)
             }
             double3 xformOp:scale.timeSamples = {
-                19: (0.0, 0.0, 0.0),
-                20: (1.0, 1.0, 1.0),
-                59: (1.0, 1.0, 1.0),
-                60: (0.0, 0.0, 0.0)
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.11
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (0.3, 18.1, 0.08), 20: (0.3, 18.1, 0.08), 44: (-3.7, 12.6, 0.08), 60: (-3.7, 10.1, 0.08)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (-0.2, 18.18, -0.1), 20: (-0.2, 18.18, -0.1), 44: (-4.2, 12.68, -0.1), 60: (-4.2, 10.18, -0.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_Sat3" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.10
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (0.08, 17.75, 0.14), 20: (0.08, 17.75, 0.14), 44: (-3.92, 12.25, 0.14), 60: (-3.92, 9.75, 0.14)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
             }
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         }
 
-        # ── D1 → GPi pulse (frames 80-120, direct pathway) ─────────────────
-        # Blue = GABAergic D1 MSN signal to GPi.
-        # This is the SUPPRESSION signal that will silence GPi.
-        # Travels from D1 MSN at (-4,10,0) to GPi at (-5,2,0).
+        # ── D1 → GPi cluster (frames 80-120, GABA, blue) ───────────────────
+        # 4 spheres. Base path: (-4,10,0) → (-4.5,6,0) → (-5,2,0).
+        # Offsets: Core=(0,0,0), Sat1=(+0.25,+0.1,+0.08), Sat2=(-0.18,+0.16,-0.1), Sat3=(+0.1,-0.2,+0.12)
 
-        def Sphere "D1ToGPi"
+        def Sphere "D1G_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
         {
-            double radius = 0.2
+            double radius = 0.14
             color3f[] primvars:displayColor = [(0.2, 0.4, 1.0)]
-
+            rel material:binding = </Materials/PulseOrbD1Material>
             double3 xformOp:translate.timeSamples = {
-                80:  (-4.0, 10.0, 0.0),
-                100: (-4.5, 6.0, 0.0),
-                120: (-5.0, 2.0, 0.0)
+                80: (-4.0, 10.0, 0.0), 100: (-4.5, 6.0, 0.0), 120: (-5.0, 2.0, 0.0)
             }
             double3 xformOp:scale.timeSamples = {
-                79:  (0.0, 0.0, 0.0),
-                80:  (1.0, 1.0, 1.0),
-                119: (1.0, 1.0, 1.0),
-                120: (0.0, 0.0, 0.0)
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "D1G_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(0.2, 0.4, 1.0)]
+            rel material:binding = </Materials/PulseOrbD1Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (-3.75, 10.1, 0.08), 100: (-4.25, 6.1, 0.08), 120: (-4.75, 2.1, 0.08)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "D1G_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.08
+            color3f[] primvars:displayColor = [(0.2, 0.4, 1.0)]
+            rel material:binding = </Materials/PulseOrbD1Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (-4.18, 10.16, -0.1), 100: (-4.68, 6.16, -0.1), 120: (-5.18, 2.16, -0.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "D1G_Sat3" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(0.2, 0.4, 1.0)]
+            rel material:binding = </Materials/PulseOrbD1Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (-3.9, 9.8, 0.12), 100: (-4.4, 5.8, 0.12), 120: (-4.9, 1.8, 0.12)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
             }
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         }
 
-        # ── GPi → Thalamus pulse (frames 140-180, direct pathway win) ───────
-        # Gold = thalamic release signal. This is the MOST IMPORTANT pulse:
-        # GPi is now silent, and this golden orb represents the disinhibition —
-        # the 'release from suppression' that allows the thalamus to fire.
-        # Travels from GPi at (-5,2,0) to Thalamus at (0,-10,0).
+        # ── Cortex → D2 MSN cluster (frames 20-60, glutamate, orange) ─────────
+        # Mirror of CTS cluster. Path: Cortex (0,18,0) → D2 dendrite tips (4,12.5,0) → D2 soma (4,10,0).
+        # Same dendrite waypoint logic — orbs enter dendritic arbor before reaching soma.
 
-        def Sphere "GPiToThalamus"
+        def Sphere "CTS_D2_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
         {
-            double radius = 0.2
-            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
-
+            double radius = 0.16
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
             double3 xformOp:translate.timeSamples = {
-                140: (-5.0, 2.0, 0.0),
-                160: (-2.5, -4.0, 0.0),
-                180: (0.0, -10.0, 0.0)
+                0: (0.0, 18.0, 0.0), 20: (0.0, 18.0, 0.0), 44: (4.0, 12.5, 0.0), 60: (4.0, 10.0, 0.0)
             }
             double3 xformOp:scale.timeSamples = {
-                139: (0.0, 0.0, 0.0),
-                140: (1.0, 1.0, 1.0),
-                179: (1.0, 1.0, 1.0),
-                180: (0.0, 0.0, 0.0)
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_D2_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.11
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (-0.3, 18.1, 0.08), 20: (-0.3, 18.1, 0.08), 44: (3.7, 12.6, 0.08), 60: (3.7, 10.1, 0.08)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_D2_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (0.2, 18.18, -0.1), 20: (0.2, 18.18, -0.1), 44: (4.2, 12.68, -0.1), 60: (4.2, 10.18, -0.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "CTS_D2_Sat3" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.10
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.3)]
+            rel material:binding = </Materials/PulseOrbCortexMaterial>
+            double3 xformOp:translate.timeSamples = {
+                0: (-0.08, 17.75, 0.14), 20: (-0.08, 17.75, 0.14), 44: (3.92, 12.25, 0.14), 60: (3.92, 9.75, 0.14)
+            }
+            double3 xformOp:scale.timeSamples = {
+                19: (0.0, 0.0, 0.0), 20: (1.0, 1.0, 1.0), 59: (1.0, 1.0, 1.0), 60: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── D2 → GPe cluster (frames 80-120, GABA, amber) ───────────────────────
+        # D2_MSN world (4,10,0) → midpoint (4.5,6,0) → GPe world (5,2,0).
+        # Indirect/NoGo pathway: D2 inhibits GPe with GABA.
+
+        def Sphere "D2G_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.14
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.1)]
+            rel material:binding = </Materials/PulseOrbD2Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (4.0, 10.0, 0.0), 100: (4.5, 6.0, 0.0), 120: (5.0, 2.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "D2G_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.1)]
+            rel material:binding = </Materials/PulseOrbD2Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (4.25, 10.1, 0.08), 100: (4.75, 6.1, 0.08), 120: (5.25, 2.1, 0.08)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "D2G_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.08
+            color3f[] primvars:displayColor = [(1.0, 0.6, 0.1)]
+            rel material:binding = </Materials/PulseOrbD2Material>
+            double3 xformOp:translate.timeSamples = {
+                80: (3.82, 10.16, -0.1), 100: (4.32, 6.16, -0.1), 120: (4.82, 2.16, -0.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                79: (0.0, 0.0, 0.0), 80: (1.0, 1.0, 1.0), 119: (1.0, 1.0, 1.0), 120: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── GPe → STN cluster (frames 110-145, GABA, lavender) ──────────────────
+        # GPe world (5,2,0) → midpoint (6.5,-1,1) → STN world (8,-4,2).
+        # GPe tonically inhibits STN; when D2 fires (above), GPe dims and STN disinhibits.
+
+        def Sphere "GPeS_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.13
+            color3f[] primvars:displayColor = [(0.7, 0.5, 0.9)]
+            rel material:binding = </Materials/PulseOrbGPeMaterial>
+            double3 xformOp:translate.timeSamples = {
+                110: (5.0, 2.0, 0.0), 127: (6.5, -1.0, 1.0), 145: (8.0, -4.0, 2.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                109: (0.0, 0.0, 0.0), 110: (1.0, 1.0, 1.0), 144: (1.0, 1.0, 1.0), 145: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GPeS_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(0.7, 0.5, 0.9)]
+            rel material:binding = </Materials/PulseOrbGPeMaterial>
+            double3 xformOp:translate.timeSamples = {
+                110: (5.22, 2.12, 0.1), 127: (6.72, -0.88, 1.1), 145: (8.22, -3.88, 2.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                109: (0.0, 0.0, 0.0), 110: (1.0, 1.0, 1.0), 144: (1.0, 1.0, 1.0), 145: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GPeS_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.08
+            color3f[] primvars:displayColor = [(0.7, 0.5, 0.9)]
+            rel material:binding = </Materials/PulseOrbGPeMaterial>
+            double3 xformOp:translate.timeSamples = {
+                110: (4.85, 1.88, -0.08), 127: (6.35, -1.12, 0.92), 145: (7.85, -4.12, 1.92)
+            }
+            double3 xformOp:scale.timeSamples = {
+                109: (0.0, 0.0, 0.0), 110: (1.0, 1.0, 1.0), 144: (1.0, 1.0, 1.0), 145: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── STN → GPi cluster (frames 130-165, glutamate, teal) ─────────────────
+        # STN world (8,-4,2) → midpoint (1.5,-1,1) → GPi world (-5,2,0).
+        # Hyperdirect/indirect route: STN excites GPi, keeping the gate closed (NoGo).
+
+        def Sphere "SGi_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.14
+            color3f[] primvars:displayColor = [(0.2, 0.8, 0.7)]
+            rel material:binding = </Materials/PulseOrbSTNMaterial>
+            double3 xformOp:translate.timeSamples = {
+                130: (8.0, -4.0, 2.0), 147: (1.5, -1.0, 1.0), 165: (-5.0, 2.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                129: (0.0, 0.0, 0.0), 130: (1.0, 1.0, 1.0), 164: (1.0, 1.0, 1.0), 165: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "SGi_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(0.2, 0.8, 0.7)]
+            rel material:binding = </Materials/PulseOrbSTNMaterial>
+            double3 xformOp:translate.timeSamples = {
+                130: (8.2, -3.88, 2.12), 147: (1.7, -0.88, 1.12), 165: (-4.8, 2.12, 0.12)
+            }
+            double3 xformOp:scale.timeSamples = {
+                129: (0.0, 0.0, 0.0), 130: (1.0, 1.0, 1.0), 164: (1.0, 1.0, 1.0), 165: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "SGi_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.08
+            color3f[] primvars:displayColor = [(0.2, 0.8, 0.7)]
+            rel material:binding = </Materials/PulseOrbSTNMaterial>
+            double3 xformOp:translate.timeSamples = {
+                130: (7.88, -4.12, 1.88), 147: (1.38, -1.12, 0.88), 165: (-5.12, 1.88, -0.12)
+            }
+            double3 xformOp:scale.timeSamples = {
+                129: (0.0, 0.0, 0.0), 130: (1.0, 1.0, 1.0), 164: (1.0, 1.0, 1.0), 165: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # ── GPi → Thalamus cluster (frames 140-180, disinhibition, gold) ────
+        # 5 spheres, biggest cluster — the key release event.
+        # Base path: (-5,2,0) → (-2.5,-4,0) → (0,-10,0).
+
+        def Sphere "GTh_Core" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.17
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+            rel material:binding = </Materials/PulseOrbGPiMaterial>
+            double3 xformOp:translate.timeSamples = {
+                140: (-5.0, 2.0, 0.0), 160: (-2.5, -4.0, 0.0), 180: (0.0, -10.0, 0.0)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0), 140: (1.0, 1.0, 1.0), 179: (1.0, 1.0, 1.0), 180: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GTh_Sat1" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.12
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+            rel material:binding = </Materials/PulseOrbGPiMaterial>
+            double3 xformOp:translate.timeSamples = {
+                140: (-4.7, 2.1, 0.1), 160: (-2.2, -3.9, 0.1), 180: (0.3, -9.9, 0.1)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0), 140: (1.0, 1.0, 1.0), 179: (1.0, 1.0, 1.0), 180: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GTh_Sat2" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.10
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+            rel material:binding = </Materials/PulseOrbGPiMaterial>
+            double3 xformOp:translate.timeSamples = {
+                140: (-5.25, 2.2, -0.08), 160: (-2.75, -3.8, -0.08), 180: (-0.25, -9.8, -0.08)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0), 140: (1.0, 1.0, 1.0), 179: (1.0, 1.0, 1.0), 180: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GTh_Sat3" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.11
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+            rel material:binding = </Materials/PulseOrbGPiMaterial>
+            double3 xformOp:translate.timeSamples = {
+                140: (-4.9, 1.7, 0.15), 160: (-2.4, -4.3, 0.15), 180: (0.1, -10.3, 0.15)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0), 140: (1.0, 1.0, 1.0), 179: (1.0, 1.0, 1.0), 180: (0.0, 0.0, 0.0)
+            }
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Sphere "GTh_Sat4" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            double radius = 0.09
+            color3f[] primvars:displayColor = [(1.0, 0.95, 0.7)]
+            rel material:binding = </Materials/PulseOrbGPiMaterial>
+            double3 xformOp:translate.timeSamples = {
+                140: (-5.28, 1.9, 0.18), 160: (-2.78, -4.1, 0.18), 180: (-0.28, -10.1, 0.18)
+            }
+            double3 xformOp:scale.timeSamples = {
+                139: (0.0, 0.0, 0.0), 140: (1.0, 1.0, 1.0), 179: (1.0, 1.0, 1.0), 180: (0.0, 0.0, 0.0)
             }
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         }
     }
 
-    # ═══════════════════════════════════════════════════════════
     # SNc DOPAMINE WISPS — PointInstancer Animation
-    # ═══════════════════════════════════════════════════════════
-    #
-    # EXAM: positions timeSamples on PointInstancer
-    # We override the DopamineParticles PointInstancer in the SNc payload asset.
-    # The 'over' chain: over "World" > over "SNc" > over "SNcNeuron" > over "DopamineParticles"
-    #
-    # KEY PATTERN: This uses 'over' all the way down — we don't redefine the
-    # PointInstancer, we only override the positions attribute within it.
-    # The protoIndices, orientations, and Prototypes/Vesicle remain from the asset.
-    #
-    # LOOP STRUCTURE (120-frame loop that repeats):
-    #   Frame 0:   particles at resting positions (Y = 1.2 to 12.5)
-    #   Frame 120: particles shifted up +1.0 Y (Y = 2.2 to 13.5)
-    #   Frame 121: reset to resting positions (hard cut, but disguised by density)
-    #   Frame 240: shifted up again (second loop)
-    #
-    # The hard reset at frame 121 is disguised because the particles are dense
-    # enough that the collective 'flow' maintains the visual impression of
-    # continuous upward movement even during the instantaneous reset.
-    #
-    # WHY NOT USE VELOCITIES?
-    # We want a perfectly looping animation that exactly repeats every 120 frames.
-    # Velocity-based extrapolation can drift. Explicit timeSamples give exact positions.
-    # The file size cost is manageable for 20 particles at 2 keyframes per loop.
+    # Moved to layers/_dopamine_block.usda (generated by gen_dopamine_anim.py).
+    # That layer is the strongest sublayer in basal_ganglia.usda / basal_ganglia_hq.usda.
+}
 
-    over "SNc"
+# ═══════════════════════════════════════════════════════════════════════════════
+# MATERIAL EMISSIVE ANIMATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This 'over "Materials"' block overrides the static inputs:emissiveColor values
+# in shaders.usda with timeSamples, creating the pulse-triggered glow/shine.
+#
+# EXAM: why 'over "Materials"' at the ROOT level (not inside over "World")?
+#   Materials prim is at /Materials in the stage (defined in shaders.usda as a root prim).
+#   It is NOT under /World. An 'over "Materials"' inside 'over "World"' would target
+#   /World/Materials — a path that does not exist. Always match the prim hierarchy.
+#
+# EXAM: resting values must be keyed:
+#   Because this layer is STRONGEST, its timeSamples fully replace the static
+#   emissiveColor from shaders.usda at ALL frames. The resting (non-active) value
+#   must be explicitly keyed at frame 0 and frame 240. USD holds the nearest sample
+#   outside the timeSamples range, so including both endpoints guarantees
+#   the correct color at the start and end of the 240-frame timeline.
+
+over "Materials"
+{
+    # ─── Cortex flash: pink-red on motor activation (frames 0-30) ────────────
+    over "CortexMaterial"
     {
-        # DEFAULTPRIM RESOLUTION FIX:
-        # snc_neuron.usda declares defaultPrim = "SNcNeuron". When a payload uses
-        # a defaultPrim, that prim's CHILDREN are mapped directly under the
-        # referencing prim — not under an extra name level. The payload arc places:
-        #   SNcNeuron/Soma              → /World/SNc/Soma
-        #   SNcNeuron/DopamineParticles → /World/SNc/DopamineParticles
-        # Writing 'over "SNcNeuron" > over "DopamineParticles"' would target
-        # /World/SNc/SNcNeuron/DopamineParticles — a path that does not exist.
-        # USD silently drops orphaned overs, so the positions.timeSamples would
-        # never apply and the particles would not animate.
-        # Correct path: 'over "DopamineParticles"' directly under 'over "SNc"'.
-        over "DopamineParticles"
+        over "Surface"
         {
-                # Vesicle radius increased from 0.05 (sub-pixel, invisible at scene scale)
-                # to 0.25 (visible without looking unrealistically large).
-                # This override lives in animation.usda rather than the asset so the
-                # asset file remains a physically-accurate reference; visual scale is
-                # a presentation concern owned by the animation/override layers.
-                over "Prototypes"
-                {
-                    over "Vesicle"
-                    {
-                        double radius = 0.25
-                    }
-                }
+            color3f inputs:emissiveColor.timeSamples = {
+                0:   (0.0, 0.0, 0.0),
+                5:   (0.5, 0.25, 0.35),
+                10:  (1.5, 0.6,  0.8),
+                20:  (0.8, 0.3,  0.4),
+                30:  (0.0, 0.0,  0.0),
+                240: (0.0, 0.0,  0.0)
+            }
+        }
+    }
 
-                point3f[] positions.timeSamples = {
-                    0: [
-                        (0.1, 1.2, 0.1), (-0.1, 1.8, -0.1), (0.15, 2.4, 0.1), (-0.05, 3.0, -0.15),
-                        (0.1, 3.6, 0.2), (-0.15, 4.2, -0.1), (0.05, 4.8, 0.15), (0.2, 5.4, -0.05),
-                        (-0.1, 6.0, 0.1), (0.1, 6.6, -0.2), (-0.2, 7.2, 0.1), (0.05, 7.8, 0.15),
-                        (0.15, 8.4, -0.1), (-0.1, 9.0, 0.2), (0.1, 9.6, -0.15), (-0.15, 10.2, 0.1),
-                        (0.05, 10.8, -0.1), (0.2, 11.4, 0.15), (-0.1, 12.0, -0.2), (0.1, 12.5, 0.1)
-                    ],
-                    120: [
-                        (0.1, 2.2, 0.1), (-0.1, 2.8, -0.1), (0.15, 3.4, 0.1), (-0.05, 4.0, -0.15),
-                        (0.1, 4.6, 0.2), (-0.15, 5.2, -0.1), (0.05, 5.8, 0.15), (0.2, 6.4, -0.05),
-                        (-0.1, 7.0, 0.1), (0.1, 7.6, -0.2), (-0.2, 8.2, 0.1), (0.05, 8.8, 0.15),
-                        (0.15, 9.4, -0.1), (-0.1, 10.0, 0.2), (0.1, 10.6, -0.15), (-0.15, 11.2, 0.1),
-                        (0.05, 11.8, -0.1), (0.2, 12.4, 0.15), (-0.1, 13.0, -0.2), (0.1, 13.5, 0.1)
-                    ],
-                    121: [
-                        (0.1, 1.2, 0.1), (-0.1, 1.8, -0.1), (0.15, 2.4, 0.1), (-0.05, 3.0, -0.15),
-                        (0.1, 3.6, 0.2), (-0.15, 4.2, -0.1), (0.05, 4.8, 0.15), (0.2, 5.4, -0.05),
-                        (-0.1, 6.0, 0.1), (0.1, 6.6, -0.2), (-0.2, 7.2, 0.1), (0.05, 7.8, 0.15),
-                        (0.15, 8.4, -0.1), (-0.1, 9.0, 0.2), (0.1, 9.6, -0.15), (-0.15, 10.2, 0.1),
-                        (0.05, 10.8, -0.1), (0.2, 11.4, 0.15), (-0.1, 12.0, -0.2), (0.1, 12.5, 0.1)
-                    ],
-                    240: [
-                        (0.1, 2.2, 0.1), (-0.1, 2.8, -0.1), (0.15, 3.4, 0.1), (-0.05, 4.0, -0.15),
-                        (0.1, 4.6, 0.2), (-0.15, 5.2, -0.1), (0.05, 5.8, 0.15), (0.2, 6.4, -0.05),
-                        (-0.1, 7.0, 0.1), (0.1, 7.6, -0.2), (-0.2, 8.2, 0.1), (0.05, 8.8, 0.15),
-                        (0.15, 9.4, -0.1), (-0.1, 10.0, 0.2), (0.1, 10.6, -0.15), (-0.15, 11.2, 0.1),
-                        (0.05, 11.8, -0.1), (0.2, 12.4, 0.15), (-0.1, 13.0, -0.2), (0.1, 13.5, 0.1)
-                    ]
-                }
+    # ─── D1 MSN flash: blue on direct pathway activation (frames 55-90) ─────
+    # Resting dim blue (0.05, 0.1, 0.3) held at frames 0 and 240.
+    # Peak (0.3, 0.6, 2.5) is HDR — produces visible bloom on RTX.
+    over "DirectPathwayMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:emissiveColor.timeSamples = {
+                0:   (0.05, 0.1,  0.3),
+                55:  (0.05, 0.1,  0.3),
+                60:  (0.2,  0.4,  1.5),
+                70:  (0.3,  0.6,  2.5),
+                80:  (0.2,  0.4,  1.5),
+                90:  (0.05, 0.1,  0.3),
+                240: (0.05, 0.1,  0.3)
+            }
+        }
+    }
+
+    # ─── D2 MSN flash: amber on indirect pathway activation (frames 55-90) ──
+    # Both D1 and D2 receive cortical input simultaneously — they compete.
+    over "IndirectPathwayMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:emissiveColor.timeSamples = {
+                0:   (0.2,  0.1, 0.0),
+                55:  (0.2,  0.1, 0.0),
+                60:  (0.6,  0.3, 0.0),
+                70:  (1.5,  0.8, 0.2),
+                80:  (0.6,  0.3, 0.0),
+                90:  (0.2,  0.1, 0.0),
+                240: (0.2,  0.1, 0.0)
+            }
+        }
+    }
+
+    # ─── GPi suppression: tonic purple dims to dark (frames 110-150) ─────────
+    # GPi fires tonically at 70 Hz, so it starts glowing purple.
+    # KEY visual event: GPi goes dark → the gate opens → thalamus can fire.
+    # Frame 120 briefly brightens (being hit by the incoming GABA wave),
+    # then collapses dark. This is the most important color event in the scene.
+    over "GPiMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:emissiveColor.timeSamples = {
+                0:   (0.3,  0.15, 0.5),
+                110: (0.3,  0.15, 0.5),
+                120: (0.6,  0.3,  1.0),
+                130: (0.1,  0.05, 0.2),
+                140: (0.02, 0.01, 0.04),
+                150: (0.0,  0.0,  0.0),
+                200: (0.0,  0.0,  0.0),
+                240: (0.3,  0.15, 0.5)
+            }
+        }
+    }
+
+    # ─── Thalamus release: gold flash as GPi is silenced (frames 135-200) ────
+    # ThalamicMaterial base emissive is zero (thalamus suppressed at rest).
+    # When GPi goes dark, thalamus fires with golden glow — the victory moment.
+    # Peak (1.5, 1.4, 0.8) = HDR gold. Lingers and fades over ~60 frames.
+    over "ThalamicMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:emissiveColor.timeSamples = {
+                0:   (0.0,  0.0,  0.0),
+                135: (0.0,  0.0,  0.0),
+                142: (0.3,  0.28, 0.1),
+                150: (1.5,  1.4,  0.8),
+                165: (1.0,  0.95, 0.6),
+                180: (0.5,  0.47, 0.25),
+                200: (0.0,  0.0,  0.0),
+                240: (0.0,  0.0,  0.0)
+            }
         }
     }
 }
