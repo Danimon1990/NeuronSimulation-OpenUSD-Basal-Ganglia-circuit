@@ -128,7 +128,7 @@
         @layers/dopamine_block.usda@,
         @layers/animation.usda@,
         @layers/connections.usda@,
-        @layers/neurons.usda@,
+        @layers/neurons_hq.usda@,
         @layers/shaders.usda@,
         @layers/stimulus.usda@
     ]
@@ -267,6 +267,199 @@ def Xform "World" (
         double3 xformOp:translate = (-2.500000037252903, 16.20000024139881, -35.10000052303076)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
     }
+    over "GPi"
+    {
+        over "GPi_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/GPiMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.7792903, 1, 0.7792903)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Sphere"
+            {
+                over "Sphere"
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+            }
+        }
+    }
+
+    over "Striatum"
+    {
+        over "D1_MSN" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/DirectPathwayMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.5108779, 1, 0.5108779)
+            double3 xformOp:translate = (-4.338771313695327, -0.013036479841554538, -2.1316282072802985e-13)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Cylinder"
+            {
+                over "Cylinder" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/DirectPathwayMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            over "env_light"
+            {
+                token visibility = "invisible"
+            }
+        }
+
+        over "D2_MSN" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/IndirectPathwayMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.79523337, 1, 0.79523337)
+            double3 xformOp:translate = (4, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Cylinder"
+            {
+                over "Cylinder" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/IndirectPathwayMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            over "env_light"
+            {
+                color3f inputs:color = (0.1871755, 0.06576298, 1.9599999)
+                float inputs:colorTemperature = 6500
+                float inputs:exposure = -0.5
+                float inputs:intensity = 0.2
+                token visibility = "inherited"
+            }
+        }
+    }
+
+    over "GPe"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.77004117, 0.77004117, 1)
+        double3 xformOp:translate = (5, 2, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "GPe_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/InhibitoryMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+
+            over "env_light"
+            {
+                token visibility = "invisible"
+            }
+        }
+    }
+
+    over "STN"
+    {
+        over "STN_Neuron"
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.8953532, 1, 0.8953532)
+            double3 xformOp:translate = (-0.7312476051589041, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Sphere"
+            {
+                over "Sphere" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </Materials/DopamineMaterial> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (0.70400506, 1, 0.70400506)
+                    double3 xformOp:translate = (-1.3729151779998157, 8.881784197001252e-16, -2.9247307417572963)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+            }
+        }
+    }
+
+    over "Thalamus"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, -10, -0.6237652508393099)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "Thalamic_Neuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/ThalamicMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (0.89029545, 1, 0.89029545)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+            over "Icosphere"
+            {
+                float3 xformOp:rotateXYZ = (20.175451, 14.982818, 5.0330896)
+                float3 xformOp:scale = (0.7803892, 0.62283176, 0.48605117)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+
+    over "Cortex"
+    {
+        over "PyramidalNeuron" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Materials/CortexMaterial> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+        }
+    }
+
+    over "SNc" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </Materials/DopamineMaterial> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+    }
+
     variantSet "displayLOD" = {
         "billboard_cards" (
             doc = "Cards mode — textured quad sprites. Renderers substitute pre-baked textures."
@@ -451,6 +644,29 @@ def "Render" (
         {
             uniform string sourceName = "LdrColor"
         }
+    }
+}
+
+over "Materials"
+{
+    over "NeuronBaseMaterial"
+    {
+        over "Surface"
+        {
+            color3f inputs:diffuseColor = (0.29943714, 0.364663, 0.42988503)
+            color3f inputs:emissiveColor = (0.1664028, 0.10241778, 0.524138)
+            float inputs:opacityThreshold = 0.35999998
+            float inputs:roughness = 0.51
+            color3f inputs:specularColor = (0, 0, 0)
+        }
+    }
+}
+
+over "Connections"
+{
+    over "SNc_to_D1"
+    {
+        token visibility = "invisible"
     }
 }
 
