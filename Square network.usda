@@ -84,13 +84,9 @@ def Xform "World"
     }
 
     def "basal_ganglia_instance_02" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-        prepend payload = @./basal_ganglia_instance.usda@
+        prepend payload = @./basal_ganglia.usda@
     )
     {
-        rel material:binding = </World/Looks/OmniPBR> (
-            bindMaterialAs = "weakerThanDescendants"
-        )
         quatf xformOp:orient = (6.123234e-17, 0, 0, 1)
         double xformOp:rotateX:unitsResolve = 90
         float3 xformOp:scale = (1, 1, 1)
