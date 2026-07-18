@@ -227,6 +227,33 @@ def Xform "Materials" (
         }
     }
 
+    # ─── DopamineVesicleMaterial ───────────────────────────────────────────────
+    # Traveling dopamine vesicle spheres (Vesicle prototype, DopamineParticles
+    # PointInstancer) — deliberately separate from DopamineMaterial (SNc soma /
+    # STN highlight / nigrostriatal tube) so the soma keeps its "solid neuron
+    # tissue" read while the particles themselves read as energy, not molecules:
+    # near-zero roughness for a hard specular sheen, low opacity + ior for a
+    # translucent glassy-wisp body, and strongly HDR emissive (~3x the full
+    # DopamineMaterial peak) so the glow — not the surface — carries the shape.
+
+    def Material "DopamineVesicleMaterial" (
+        doc = "Dopamine vesicle spheres — shiny, translucent, emissive-dominant. Reads as energy, not a solid molecule."
+    )
+    {
+        token outputs:surface.connect = </Materials/DopamineVesicleMaterial/Surface.outputs:surface>
+
+        def Shader "Surface" {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.4, 0.5, 0.1)
+            float inputs:roughness = 0.03
+            float inputs:metallic = 0.0
+            float inputs:ior = 1.25
+            color3f inputs:emissiveColor = (2.4, 3.0, 0.6)
+            float inputs:opacity = 0.55
+            token outputs:surface
+        }
+    }
+
     # ─── CortexMaterial ────────────────────────────────────────────────────────
     # Motor cortex pyramidal neuron — pink-red, excitatory.
     # Base emissive is zero at rest; animation.usda flashes it pink-red during

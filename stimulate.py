@@ -725,151 +725,26 @@ def _snc_dopamine_lines(dopamine: float) -> list:
     return _soma_color_lines(["SNc", "Soma"], keyframes)
 
 
-def _dopamine_particles_lines(dopamine: float) -> list:
-    """
-    USDA lines overriding SNc/DopamineParticles positions.timeSamples so that
-    vesicle density and travel speed scale with the dopamine level.
-
-    SNc world position: (0, 6, -10).  PointInstancer positions are LOCAL to SNc.
-    Target positions in SNc-local space (derived from world targets minus SNc origin):
-      D1 MSN  (-4, 10, 0) - (0, 6, -10) = (-4,  4, 10)
-      D2 MSN  ( 4, 10, 0) - (0, 6, -10) = ( 4,  4, 10)
-
-    Conveyor-belt model (same trick as the original animation.usda):
-      - N_active particles are pre-distributed along the two paths at t=0.
-      - Every T frames they advance one "slot" forward along the path.
-      - The leading particle arrives at the MSN soma; at frame T+1 the array
-        hard-resets to the frame-0 distribution (disguised by particle density).
-      - N_active and T both scale with dopamine:
-          dopamine=0.0  → 0 active, 20 resting near soma, no movement (Parkinsonian)
-          dopamine=0.5  → 10 active (5 D1, 5 D2), T≈78 frames
-          dopamine=1.0  → 20 active (10 D1, 10 D2), T=30 frames (fast burst)
-
-    This override lives in pathway_override.usda (strongest sublayer) so it beats
-    the static Y-only motion in animation.usda, which never reaches the MSN targets.
-
-    EXAM NOTE:
-        PointInstancer.positions is a point3f[] attribute.
-        All N instance positions are encoded as one array per keyframe.
-        We only override positions here; protoIndices (which prototype mesh each
-        instance uses) and the Vesicle prototype radius remain from the asset /
-        animation.usda overrides, untouched by this layer.
-    """
-    rng = random.Random(42)  # fixed seed → reproducible output across runs
-
-    # SNc-local space targets
-    D1_LOCAL = (-4.0,  4.0, 10.0)   # world (-4, 10, 0)
-    D2_LOCAL = ( 4.0,  4.0, 10.0)   # world ( 4, 10, 0)
-    SOMA     = ( 0.0, -0.5,  0.0)   # near SNc soma centre in local space
-
-    # Particle budget
-    n_active = round(dopamine * 20)
-    n_d1     = n_active // 2
-    n_d2     = n_active - n_d1
-    n_rest   = 20 - n_active
-
-    # Deterministic per-particle jitter (small, to break the perfect-grid look)
-    jitters = [
-        (rng.uniform(-0.25, 0.25), rng.uniform(-0.1, 0.1), rng.uniform(-0.2, 0.2))
-        for _ in range(20)
-    ]
-
-    def lerp3(a, b, t):
-        return (a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t)
-
-    def active_pos(target, i, n, frac, jitter):
-        """Position of the i-th particle in an n-particle group, at conveyor fraction frac."""
-        t = min(1.0, i / max(n, 1) + frac)
-        p = lerp3(SOMA, target, t)
-        return (round(p[0] + jitter[0]*0.2, 3),
-                round(p[1] + jitter[1]*0.15, 3),
-                round(p[2] + jitter[2]*0.2, 3))
-
-    def rest_pos(jitter):
-        return (round(SOMA[0] + jitter[0]*0.3, 3),
-                round(SOMA[1] + jitter[1]*0.2 - 0.2, 3),
-                round(SOMA[2] + jitter[2]*0.3, 3))
-
-    def snapshot(step_frac):
-        """All 20 particle positions at the given conveyor step fraction."""
-        pos = []
-        for i in range(n_d1):
-            pos.append(active_pos(D1_LOCAL, i, n_d1, step_frac, jitters[i]))
-        for i in range(n_d2):
-            pos.append(active_pos(D2_LOCAL, i, n_d2, step_frac, jitters[n_d1+i]))
-        for i in range(n_rest):
-            pos.append(rest_pos(jitters[n_d1+n_d2+i]))
-        return pos
-
-    def fmt_positions(positions):
-        """Format 20 positions into multi-line USDA array rows, 4 per row."""
-        rows = []
-        for chunk_start in range(0, 20, 4):
-            chunk = positions[chunk_start:chunk_start+4]
-            row = ", ".join(f"({p[0]:.3f}, {p[1]:.3f}, {p[2]:.3f})" for p in chunk)
-            rows.append(f"                        {row},")
-        return rows
-
-    # ── Build keyframe dict ────────────────────────────────────────────────────
-    if dopamine < 0.02:
-        # Parkinsonian: particles frozen near soma
-        base = snapshot(0.0)
-        kf = {0: base, 240: base}
-    else:
-        T    = max(30, int(120 * (1.0 - dopamine * 0.70)))   # loop period in frames
-        step = 1.0 / max(n_d1, n_d2, 1)                       # path fraction per loop
-        kf   = {}
-        f    = 0
-        while f <= 240:
-            kf[f] = snapshot(0.0)               # loop start: particles at base positions
-            f_end = f + T
-            if f_end <= 240:
-                kf[f_end] = snapshot(step)      # loop end: lead particle at MSN target
-                if f_end + 1 <= 240:
-                    kf[f_end + 1] = snapshot(0.0)  # hard reset (disguised by density)
-            else:
-                # Partial final loop: interpolate to frame 240
-                partial = step * (240 - f) / T
-                kf[240] = snapshot(partial)
-                break
-            f = f_end + 1
-
-    # ── Render to USDA lines ───────────────────────────────────────────────────
-    kf_lines = []
-    for frame in sorted(kf.keys()):
-        kf_lines.append(f"                    {frame}: [")
-        kf_lines.extend(fmt_positions(kf[frame]))
-        kf_lines.append(f"                    ],")
-
-    return [
-        "",
-        "    # DopamineParticles flow: vesicles travel from SNc toward D1/D2 MSN targets.",
-        "    # Density (n_active) and speed (T) both scale with the dopamine level.",
-        "    # Overrides the static Y-only animation in animation.usda.",
-        '    over "SNc"',
-        "    {",
-        '        over "DopamineParticles"',
-        "        {",
-        "            point3f[] positions.timeSamples = {",
-        *kf_lines,
-        "            }",
-        "        }",
-        "    }",
-    ]
-
-
 def _snc_combined_lines(dopamine: float) -> list:
     """
-    Single over "SNc" block containing Soma displayColor, NigrostriatalAxon
-    displayColor, and DopamineParticles positions — avoids duplicate-prim errors.
+    Single over "SNc" block containing Soma displayColor and NigrostriatalAxon
+    displayColor — avoids duplicate-prim errors.
+
+    DopamineParticles positions are NOT written here. That's owned exclusively
+    by gen_dopamine_anim.py -> layers/dopamine_block.usda. This used to also
+    splice in a legacy "conveyor belt" DopamineParticles override (via
+    _dopamine_particles_lines) into pathway_override.usda, which sits ABOVE
+    dopamine_block.usda in the subLayer stack and silently won, completely
+    replacing the correct animation with an older one that didn't account
+    for SNc's -90deg xformOp:rotateXYZ — sending particles to the wrong
+    world-space positions (visually: teleporting away from the striatum
+    instead of traveling toward it). Removed 2026-07-17; do not re-add.
 
     The NigrostriatalAxon (ascending dopamine axon) pulses with the same timing
     as the soma, making the dopamine pathway visually traceable from SNc upward
     through the nigrostriatal tract to the striatum.
     """
     soma_lines = _snc_dopamine_lines(dopamine)
-    particles_full = _dopamine_particles_lines(dopamine)
-    particles_inner = particles_full[6:-1]   # strip outer over "SNc" wrapper
 
     # NigrostriatalAxon glow — same rhythm as soma but slightly brighter peak
     # so the ascending dopamine pathway is clearly visible
@@ -898,7 +773,6 @@ def _snc_combined_lines(dopamine: float) -> list:
         "    # SNc: Soma pulse + NigrostriatalAxon glow + DopamineParticles (one over block).",
         *soma_lines[:-1],    # open over "SNc", Soma content — NOT closing '    }'
         *axon_inner,         # NigrostriatalAxon glow at 8-space indent
-        *particles_inner,    # DopamineParticles at 8-space indent
         soma_lines[-1],      # closing '    }'
     ]
 

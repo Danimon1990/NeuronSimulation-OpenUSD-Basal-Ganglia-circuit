@@ -19,9 +19,14 @@ Matches stimulate.py's dopamine scale: 0.0 Parkinsonian, 0.5 healthy tonic, 1.0 
 
 import argparse
 import random
+from pathlib import Path
+
+from pxr import Usd, UsdGeom, Gf
 
 N     = 20
 TOTAL = 240
+
+STAGE_PATH = Path(__file__).resolve().parent / "basal_ganglia.usda"
 
 
 def parse_args():
@@ -42,16 +47,27 @@ def lerp(a, b, t):
 N_ACTIVE    = max(2, min(N, round(lerp(2, 20, DOPAMINE))))
 CYCLE_SCALE = lerp(1.5, 0.75, DOPAMINE)   # low dopamine -> longer cycles (slow); high -> shorter (fast)
 
-# World → SNc-local: world_x=lx, world_y=lz+6, world_z=-ly-10
+# World → SNc-local, via the SNc prim's ACTUAL current local-to-world transform
+# (read live from the stage). SNc's xformOp:rotateXYZ is hand-tuned per-scene and
+# has drifted away from a simple -90deg-about-X rotation, so a hardcoded formula
+# silently goes stale whenever the neuron placement is adjusted — read the real
+# matrix instead of assuming its shape.
+_stage = Usd.Stage.Open(str(STAGE_PATH))
+_snc = _stage.GetPrimAtPath("/World/SNc")
+_snc_local_to_world = UsdGeom.Xformable(_snc).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+_snc_world_to_local = _snc_local_to_world.GetInverse()
+
+
 def world_to_snc(wx, wy, wz):
-    return (wx, -(wz + 10.0), wy - 6.0)
+    p = _snc_world_to_local.Transform(Gf.Vec3d(wx, wy, wz))
+    return (p[0], p[1], p[2])
 
 
 # Canonical targets in SNc-local space
-D1_DEND = world_to_snc(-4.0, 12.5, 0.0)   # (-4, -10, 6.5)
-D1_PROX = world_to_snc(-4.0, 11.0, 0.0)   # descending from D1 arbor
-D2_DEND = world_to_snc(4.0, 12.5, 0.0)    # (4, -10, 6.5)
-D2_SOMA = world_to_snc(4.0, 10.0, 0.0)    # (4, -10, 4.0) — final hide point
+D1_DEND = world_to_snc(-4.0, 12.5, 0.0)      # D1 MSN dendrite tips
+D1_PROX = world_to_snc(-4.0, 11.0, 0.0)      # descending from D1 arbor
+D2_DEND = world_to_snc(4.0, 12.5, 0.0)       # D2 MSN dendrite tips
+D2_SOMA = world_to_snc(4.07, 10.09, 0.0028)  # inside D2 MSN soma body — final hide point
 
 # Per-particle timing/spread — first 10 are hand-tuned (unchanged from the original
 # 10-vesicle version); the remaining 10 are generated deterministically (seeded RNG)
@@ -240,5 +256,5 @@ print(f"  cycles   {CYCLE[:N_ACTIVE]}")
 print(f"  Path: SNc → D1 dendrites {D1_DEND} → D2 dendrites {D2_DEND} → D2 soma {D2_SOMA}")
 labels = ["SNc", "exit", "D1 dendrites", "D1 proximal", "midline", "D2 dendrites", "D2 soma"]
 for j, (wp, tf, lbl) in enumerate(zip(WAYPOINTS[0], WP_T, labels)):
-    wx, wy, wz = wp[0], wp[2] + 6, -wp[1] - 10
+    wx, wy, wz = _snc_local_to_world.Transform(Gf.Vec3d(*wp))
     print(f"  W{j} t={tf:.2f} [{lbl}]: world({wx:+.2f},{wy:+.2f},{wz:+.2f})")

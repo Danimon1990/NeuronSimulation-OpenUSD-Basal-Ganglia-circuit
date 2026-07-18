@@ -446,7 +446,7 @@ def Xform "World"
                 )
                 {
                     double radius = 0.08
-                    rel material:binding = </Materials/DopamineMaterial>
+                    rel material:binding = </Materials/DopamineVesicleMaterial>
                     color3f[] primvars:displayColor = [(0.8, 1.0, 0.2)]
                 }
             }
